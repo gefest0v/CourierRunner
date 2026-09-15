@@ -1,0 +1,16 @@
+"Layer0"
+{
+	"shader"	"global_lit_simple.vfx"
+	"g_vColorTint"	"[0.850980 0.850980 0.850980 0.000000]"
+	"g_vTexCoordOffset"	"[0.000000 0.000000 0.000000 0.000000]"
+	"g_vTexCoordScale"	"[1.000000 1.000000 0.000000 0.000000]"
+	"TextureColor"	"materials/models/props_generic/ground_generic_treadmil_large_color.png"
+	"Compiled Textures"
+	{
+		"g_tColor"	"materials/models/props_generic/ground_generic_treadmil_large_color_psd_2e6bd717.vtex"
+	}
+	"DynamicParams"
+	{
+		"g_vTexCoordOffset"	"return frac(float2(-.032,-0)*time()*5);"
+	}
+}
