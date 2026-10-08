@@ -50,7 +50,10 @@ namespace CourierRunner
 
         private void BuildNow()
         {
+#if !UNITY_WEBGL
+            // In the browser the frame loop follows requestAnimationFrame; capping it there causes stutter.
             Application.targetFrameRate = 60;
+#endif
             Time.timeScale = 1f; // A run may have been left from the pause menu.
             config = GameConfig.Instance;
             AutoStart = GameSession.ConsumePendingRun();

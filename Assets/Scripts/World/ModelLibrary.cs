@@ -72,6 +72,11 @@ namespace CourierRunner
             Register(PoolKeys.Fireball, TowerProjectile.CreateTemplate());
             Register(PoolKeys.Treant, CreateTreantTemplate());
             Register(PoolKeys.Wings, CreateWingsPickupTemplate());
+
+            // Objects that first appear mid-run are created up front to avoid a hitch.
+            pools[PoolKeys.Treant].Prewarm(4);
+            pools[PoolKeys.Fireball].Prewarm(6);
+            pools[PoolKeys.Wings].Prewarm(1);
         }
 
         public static string ForestCardKey(int variant) => PoolKeys.ForestCard + " " + variant;

@@ -62,6 +62,9 @@ namespace CourierRunner
             portraitCamera.clearFlags = CameraClearFlags.SolidColor;
             portraitCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
             portraitCamera.cullingMask = 1 << Layer;
+            // HDR and MSAA buffers drop the alpha channel; without them the background stays transparent.
+            portraitCamera.allowHDR = false;
+            portraitCamera.allowMSAA = false;
             portraitCamera.fieldOfView = FieldOfView;
             portraitCamera.nearClipPlane = 0.1f;
             portraitCamera.farClipPlane = 30f;
