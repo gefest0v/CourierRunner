@@ -352,6 +352,8 @@ namespace CourierRunner
             Button menu = CreateButton(overlay.transform, "В МЕНЮ", new Vector2(0.15f, 0.33f), new Vector2(0.85f, 0.41f), Slate, 30);
             menu.onClick.AddListener(() =>
             {
+                // Leaving a run counts like losing it: the coins are kept if the config says so.
+                if (GameConfig.Instance.keepCoinsOnFail) SaveSystem.AddCoins(runner.Coins);
                 Time.timeScale = 1f;
                 UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
             });
