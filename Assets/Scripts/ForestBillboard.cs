@@ -5,16 +5,12 @@ namespace CourierRunner
     // Rotates only the section root. Imported model correction remains on the child tree.
     public sealed class ForestBillboard : MonoBehaviour
     {
-        private Transform target;
-
         private void LateUpdate()
         {
-            if (target == null)
-            {
-                GameObject courier = GameObject.Find("Courier");
-                if (courier != null) target = courier.transform;
-                else if (Camera.main != null) target = Camera.main.transform;
-            }
+            Transform target = null;
+            GameWorld world = GameWorld.Current;
+            if (world != null && world.Runner != null) target = world.Runner.transform;
+            else if (Camera.main != null) target = Camera.main.transform;
             if (target == null) return;
             Vector3 direction = transform.position - target.position;
             direction.y = 0f;

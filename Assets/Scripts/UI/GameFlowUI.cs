@@ -22,7 +22,8 @@ namespace CourierRunner
         private void Start()
         {
             BuildCanvas();
-            if (GameSession.ConsumePendingRun()) StartGameplay();
+            GameWorld world = GameWorld.Current;
+            if (world != null && world.AutoStart) StartGameplay();
             else ShowMainMenu();
         }
 

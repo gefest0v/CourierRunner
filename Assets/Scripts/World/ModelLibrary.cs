@@ -1,0 +1,331 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace CourierRunner
+{
+    public static class PoolKeys
+    {
+        public const string TreeOak = "Tree Oak";
+        public const string TreePine = "Tree Pine";
+        public const string TreeStump = "Tree Stump";
+        public const string DecorRock = "Decor Rock";
+        public const string Well = "Well";
+        public const string Fence = "Fence";
+        public const string ForestCard = "Forest Card";
+        public const string Coin = "Gold";
+        public const string Wall = "Wood Wall - Jump";
+        public const string Rock = "Rock - Jump";
+        public const string Tower = "Lane Tower";
+        public const string Fireball = "Tower Fireball";
+    }
+
+    /// <summary>
+    /// Turns the imported models in Resources into normalized templates (pivot at the bottom center,
+    /// fixed height) and owns one <see cref="ObjectPool"/> per template. Missing models fall back to
+    /// colored cubes so the game stays playable while art is being made.
+    /// </summary>
+    public sealed class ModelLibrary
+    {
+        public const int ForestCardVariants = 6;
+
+        private readonly Transform templateRoot;
+        private readonly Transform storage;
+        private readonly Dictionary<string, ObjectPool> pools = new();
+        private readonly Dictionary<string, Material> materials = new();
+
+        public ModelLibrary(Transform parent)
+        {
+            templateRoot = new GameObject("Templates").transform;
+            templateRoot.SetParent(parent, false);
+            storage = new GameObject("Pool Storage").transform;
+            storage.SetParent(parent, false);
+            storage.gameObject.SetActive(false);
+
+            Material oak = TextureMaterial("Trees/Textures/tree_oak_leaves_00_color_psd_c6c1c88b", true, 0.12f);
+            Material pine = TextureMaterial("Trees/Textures/tree_pine_frond_00_color_psd_cad45fc8", true, 0.12f);
+            Material stump = TextureMaterial("Trees/Textures/tree_stump001_color_psd_69850232", true, 0.12f);
+            Material well = TextureMaterial("Decorations/well_color", false, 0.18f);
+            Material wall = TextureMaterial("Walls/wall_color", false, 0.14f);
+            Material tower = TextureMaterial("Tower/tower_color", false, 0.2f);
+
+            RegisterModel(PoolKeys.TreeOak, "Trees/TreeOak", 5.5f, 0f, oak, false, new Color(0.2f, 0.45f, 0.15f));
+            RegisterModel(PoolKeys.TreePine, "Trees/TreePine", 6.2f, 0f, pine, false, new Color(0.12f, 0.35f, 0.18f));
+            RegisterModel(PoolKeys.TreeStump, "Trees/TreeStump", 1.25f, 0f, stump, false, new Color(0.4f, 0.28f, 0.16f));
+            RegisterModel(PoolKeys.DecorRock, "Environment/RockSingle", 1f, 0f, null, false, new Color(0.45f, 0.45f, 0.48f));
+            RegisterModel(PoolKeys.Well, "Decorations/Well", 2.2f, 0f, well, false, new Color(0.5f, 0.42f, 0.3f));
+            RegisterModel(PoolKeys.Fence, "Walls/Wall1", 1.2f, 0f, wall, false, new Color(0.45f, 0.3f, 0.18f));
+            for (int i = 0; i < ForestCardVariants; i++)
+            {
+                int variant = i;
+                Register(ForestCardKey(variant), () => CreateForestCard(variant));
+            }
+
+            RegisterModel(PoolKeys.Wall, "Walls/Wall2", 1.9f, 2.75f, wall, true, new Color(0.5f, 0.32f, 0.18f));
+            RegisterModel(PoolKeys.Rock, "Environment/RockSingle", 1.15f, 2.1f, null, true, new Color(0.45f, 0.45f, 0.48f));
+            RegisterModel(PoolKeys.Tower, "Tower/Tower", 3.4f, 2.5f, tower, true, new Color(0.35f, 0.18f, 0.22f),
+                template => template.AddComponent<TowerShooter>());
+            Register(PoolKeys.Coin, CreateCoinTemplate());
+            Register(PoolKeys.Fireball, TowerProjectile.CreateTemplate());
+        }
+
+        public static string ForestCardKey(int variant) => PoolKeys.ForestCard + " " + variant;
+
+        public ObjectPool Pool(string key) => pools[key];
+
+        public GameObject Get(string key, Transform parent, Vector3 localPosition, float yaw = 0f) =>
+            pools[key].Get(parent, localPosition, Quaternion.Euler(0f, yaw, 0f));
+
+        public IEnumerable<ObjectPool> AllPools => pools.Values;
+
+        private void Register(string key, GameObject template)
+        {
+            template.name = key + " Template";
+            template.transform.SetParent(templateRoot, false);
+            template.SetActive(false);
+            pools[key] = new ObjectPool(key, () => UnityEngine.Object.Instantiate(template), storage);
+        }
+
+        private void Register(string key, Func<GameObject> buildTemplate) => Register(key, buildTemplate());
+
+        private void RegisterModel(string key, string resourcePath, float height, float minimumWidth, Material material,
+            bool obstacle, Color fallbackColor, Action<GameObject> configure = null)
+        {
+            GameObject template = BuildNormalizedModel(key, resourcePath, height, minimumWidth, material, fallbackColor);
+            if (obstacle) AddHitbox(template);
+            configure?.Invoke(template);
+            Register(key, template);
+        }
+
+        /// <summary>Wraps a model so its root sits on the ground at the bottom center with the given height.</summary>
+        private GameObject BuildNormalizedModel(string key, string resourcePath, float height, float minimumWidth,
+            Material material, Color fallbackColor)
+        {
+            var root = new GameObject(key);
+            root.transform.SetParent(templateRoot, false);
+            GameObject prefab = Resources.Load<GameObject>(resourcePath);
+            GameObject model;
+            if (prefab != null)
+            {
+                model = UnityEngine.Object.Instantiate(prefab, root.transform);
+                model.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            }
+            else
+            {
+                Debug.LogWarning($"Model '{resourcePath}' not found in Resources, using a placeholder cube.");
+                model = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                model.transform.SetParent(root.transform, false);
+                model.GetComponent<Renderer>().sharedMaterial = ColorMaterial(fallbackColor);
+            }
+            model.name = "Model";
+            model.transform.localPosition = Vector3.zero;
+
+            Renderer[] renderers = model.GetComponentsInChildren<Renderer>();
+            foreach (Renderer renderer in renderers)
+            {
+                if (material != null) renderer.sharedMaterial = material;
+                // Some exported trees carry a helper cube used as a collision proxy.
+                if (renderer.gameObject != model && renderer.gameObject.name.Equals("Cube", StringComparison.OrdinalIgnoreCase))
+                    renderer.enabled = false;
+            }
+            foreach (Collider collider in model.GetComponentsInChildren<Collider>())
+                UnityEngine.Object.DestroyImmediate(collider);
+
+            if (renderers.Length > 0)
+            {
+                Bounds bounds = GetBounds(renderers);
+                if (bounds.size.y > 0.001f) model.transform.localScale *= height / bounds.size.y;
+                bounds = GetBounds(renderers);
+                if (minimumWidth > 0f && bounds.size.x < minimumWidth && bounds.size.x > 0.001f)
+                    model.transform.localScale = Vector3.Scale(model.transform.localScale,
+                        new Vector3(minimumWidth / bounds.size.x, 1f, 1f));
+                bounds = GetBounds(renderers);
+                Vector3 local = root.transform.InverseTransformPoint(bounds.center);
+                model.transform.localPosition -= new Vector3(local.x, local.y - bounds.extents.y, local.z);
+            }
+            return root;
+        }
+
+        private static void AddHitbox(GameObject template)
+        {
+            Renderer[] renderers = template.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            Bounds bounds = GetBounds(renderers);
+            var hitbox = new GameObject("Hitbox");
+            hitbox.transform.SetParent(template.transform, false);
+            hitbox.transform.position = bounds.center;
+            BoxCollider collider = hitbox.AddComponent<BoxCollider>();
+            collider.size = new Vector3(bounds.size.x, bounds.size.y, Mathf.Min(bounds.size.z, 1.1f));
+            collider.isTrigger = true;
+            hitbox.AddComponent<ObstacleTrigger>();
+        }
+
+        private GameObject CreateForestCard(int variant)
+        {
+            var pivot = new GameObject(ForestCardKey(variant));
+            pivot.transform.SetParent(templateRoot, false);
+            pivot.AddComponent<ForestBillboard>();
+            Material material = Resources.Load<Material>($"Environment/PointForest1{variant + 1}");
+            Texture texture = material != null ? material.GetTexture("_BaseMap") : null;
+            float aspect = texture != null ? (float)texture.height / texture.width : 0.81f;
+
+            GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "Image";
+            UnityEngine.Object.DestroyImmediate(quad.GetComponent<Collider>());
+            quad.transform.SetParent(pivot.transform, false);
+            const float width = 8f;
+            quad.transform.localScale = new Vector3(width, width * aspect, 1f);
+            quad.transform.localPosition = new Vector3(0f, width * aspect * 0.5f, 0f);
+            Renderer renderer = quad.GetComponent<Renderer>();
+            renderer.sharedMaterial = material != null ? material : ColorMaterial(new Color(0.15f, 0.3f, 0.15f));
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return pivot;
+        }
+
+        private GameObject CreateCoinTemplate()
+        {
+            var root = new GameObject(PoolKeys.Coin);
+            root.transform.SetParent(templateRoot, false);
+            GameObject coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            coin.name = "Coin";
+            coin.transform.SetParent(root.transform, false);
+            coin.transform.localScale = new Vector3(0.6f, 0.12f, 0.6f);
+            coin.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            Material gold = ColorMaterial(new Color(1f, 0.75f, 0.05f));
+            gold.SetFloat("_Smoothness", 0.75f);
+            gold.SetFloat("_Metallic", 0.6f);
+            coin.GetComponent<Renderer>().sharedMaterial = gold;
+            coin.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+            UnityEngine.Object.DestroyImmediate(coin.GetComponent<Collider>());
+            SphereCollider trigger = root.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = 0.45f;
+            root.AddComponent<CoinPickup>();
+            return root;
+        }
+
+        /// <summary>The courier's visual model, or a capsule if the prefab is missing.</summary>
+        public GameObject CreateCourierVisual(Transform parent)
+        {
+            GameObject prefab = Resources.Load<GameObject>("CourierVisual");
+            if (prefab != null)
+            {
+                GameObject visual = UnityEngine.Object.Instantiate(prefab, parent);
+                visual.name = "Courier Model";
+                visual.transform.localPosition = Vector3.zero;
+                visual.transform.localRotation = Quaternion.identity;
+                return visual;
+            }
+            GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            capsule.name = "Temporary Courier";
+            UnityEngine.Object.DestroyImmediate(capsule.GetComponent<Collider>());
+            capsule.transform.SetParent(parent, false);
+            capsule.transform.localScale = new Vector3(0.8f, 1f, 0.8f);
+            capsule.GetComponent<Renderer>().sharedMaterial = ColorMaterial(new Color(0.95f, 0.65f, 0.18f));
+            return capsule;
+        }
+
+        /// <summary>Crystal Maiden standing at the delivery point, facing the courier.</summary>
+        public GameObject CreateCrystalMaiden(Transform parent, Vector3 localPosition)
+        {
+            var root = new GameObject("Crystal Maiden");
+            root.transform.SetParent(parent, false);
+            GameObject prefab = Resources.Load<GameObject>("Heroes/CrystalMaiden");
+            if (prefab == null)
+            {
+                GameObject placeholder = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                UnityEngine.Object.DestroyImmediate(placeholder.GetComponent<Collider>());
+                placeholder.transform.SetParent(root.transform, false);
+                placeholder.transform.localScale = new Vector3(1f, 1.35f, 1f);
+                placeholder.transform.localPosition = new Vector3(0f, 1.35f, 0f);
+                placeholder.GetComponent<Renderer>().sharedMaterial = ColorMaterial(new Color(0.45f, 0.75f, 1f));
+                root.transform.localPosition = localPosition;
+                return root;
+            }
+
+            GameObject maiden = UnityEngine.Object.Instantiate(prefab, root.transform);
+            maiden.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            Renderer[] renderers = maiden.GetComponentsInChildren<Renderer>();
+            const string textures = "Heroes/CrystalMaidenTextures/";
+            Material body = CharacterMaterial(textures + "crystal_maiden_color_psd_764d83fe");
+            Material cape = CharacterMaterial(textures + "crystal_maiden_cape_color_psd_a138152d");
+            Material cuffs = CharacterMaterial(textures + "crystal_maiden_cuffs_color_psd_b96ac1c");
+            Material shoulders = CharacterMaterial(textures + "crystal_maiden_shoulder_color_psd_592a78cc");
+            Material staff = CharacterMaterial(textures + "crystal_maiden_staff_color_psd_1b36259a");
+            Material head = CharacterMaterial(textures + "head_item_color_tga_71ffe59e");
+            foreach (Renderer renderer in renderers)
+            {
+                string name = renderer.gameObject.name.ToLowerInvariant();
+                renderer.sharedMaterial = name.Contains("cape") ? cape : name.Contains("cuffs") ? cuffs :
+                    name.Contains("shoulder") ? shoulders : name.Contains("staff") ? staff :
+                    name.Contains("head_item") ? head : body;
+            }
+            foreach (Collider collider in maiden.GetComponentsInChildren<Collider>())
+                UnityEngine.Object.DestroyImmediate(collider);
+
+            if (renderers.Length > 0)
+            {
+                Bounds bounds = GetBounds(renderers);
+                if (bounds.size.y > 0.001f) maiden.transform.localScale *= 2.7f / bounds.size.y;
+                bounds = GetBounds(renderers);
+                Vector3 local = root.transform.InverseTransformPoint(bounds.center);
+                maiden.transform.localPosition -= new Vector3(local.x, local.y - bounds.extents.y, local.z);
+            }
+            root.transform.localPosition = localPosition;
+
+            Animator animator = maiden.GetComponentInChildren<Animator>();
+            if (animator == null) animator = maiden.AddComponent<Animator>();
+            animator.runtimeAnimatorController = Resources.Load<RuntimeAnimatorController>("Heroes/CrystalMaidenIdle");
+            animator.applyRootMotion = false;
+            root.AddComponent<RecipientAnimationLoop>().animator = animator;
+            return root;
+        }
+
+        private Material CharacterMaterial(string texturePath)
+        {
+            Material material = TextureMaterial(texturePath, true, 0.2f);
+            material.SetFloat("_Cull", 0f);
+            return material;
+        }
+
+        public Material TextureMaterial(string resourcePath, bool alphaClip, float smoothness)
+        {
+            if (materials.TryGetValue(resourcePath, out Material cached)) return cached;
+            var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.SetTexture("_BaseMap", Resources.Load<Texture2D>(resourcePath));
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_Smoothness", smoothness);
+            if (alphaClip)
+            {
+                material.SetFloat("_Cull", 0f);
+                material.SetFloat("_AlphaClip", 1f);
+                material.SetFloat("_Cutoff", 0.35f);
+                material.EnableKeyword("_ALPHATEST_ON");
+                material.SetOverrideTag("RenderType", "TransparentCutout");
+                material.renderQueue = 2450;
+            }
+            materials[resourcePath] = material;
+            return material;
+        }
+
+        public Material ColorMaterial(Color color)
+        {
+            string key = "color:" + ColorUtility.ToHtmlStringRGBA(color);
+            if (materials.TryGetValue(key, out Material cached)) return cached;
+            var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.SetColor("_BaseColor", color);
+            material.SetFloat("_Smoothness", 0.1f);
+            materials[key] = material;
+            return material;
+        }
+
+        private static Bounds GetBounds(Renderer[] renderers)
+        {
+            Bounds bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            return bounds;
+        }
+    }
+}

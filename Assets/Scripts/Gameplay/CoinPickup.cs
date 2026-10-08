@@ -11,7 +11,7 @@ namespace CourierRunner
             RunnerController runner = other.GetComponent<RunnerController>();
             if (runner == null) return;
             runner.AddCoin();
-            Destroy(gameObject);
+            PooledObject.ReleaseOrDestroy(gameObject);
         }
     }
 }

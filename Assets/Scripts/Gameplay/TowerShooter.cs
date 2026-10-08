@@ -3,26 +3,30 @@ using UnityEngine;
 namespace CourierRunner
 {
     /// <summary>Fires a fireball down its lane while the courier is in the same lane and within range.</summary>
-    public sealed class TowerShooter : MonoBehaviour
+    public sealed class TowerShooter : MonoBehaviour, IPoolable
     {
-        public RunnerController runner;
-        public float laneX;
-        public float towerZ;
         public float detectionDistance = 20f;
         public float fireInterval = 1.25f;
         private float cooldown = 0.5f;
 
+        public void OnTakenFromPool() => cooldown = 0.5f;
+        public void OnReturnedToPool() { }
+
         private void Update()
         {
-            if (runner == null || !runner.IsRunning) return;
+            GameWorld world = GameWorld.Current;
+            if (world == null || world.Runner == null || !world.Runner.IsRunning) return;
             cooldown -= Time.deltaTime;
-            float forwardDistance = towerZ - runner.transform.position.z;
-            bool sameLane = Mathf.Abs(laneX - runner.transform.position.x) < 1.15f;
+            Vector3 runnerPosition = world.Runner.transform.position;
+            Vector3 position = transform.position;
+            float forwardDistance = position.z - runnerPosition.z;
+            bool sameLane = Mathf.Abs(position.x - runnerPosition.x) < 1.15f;
             if (!sameLane || forwardDistance <= 1.5f || forwardDistance > detectionDistance || cooldown > 0f)
                 return;
 
             cooldown = fireInterval;
-            TowerProjectile.Spawn(new Vector3(laneX, 1.25f, towerZ - 1.3f));
+            Vector3 spawn = new Vector3(position.x, 1.25f, position.z - 1.3f);
+            world.Library.Get(PoolKeys.Fireball, world.Root, world.Root.InverseTransformPoint(spawn));
         }
     }
 }

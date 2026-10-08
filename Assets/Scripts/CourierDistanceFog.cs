@@ -1,11 +1,11 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace CourierRunner
 {
     /// <summary>
     /// Continuous depth fog. The camera follows the courier, so the clear viewing
-    /// radius follows them as well; no fixed world-space fog geometry is used.
+    /// radius follows them as well and hides segments being placed far ahead.
+    /// Added by <see cref="GameWorld"/>.
     /// </summary>
     public sealed class CourierDistanceFog : MonoBehaviour
     {
@@ -14,20 +14,6 @@ namespace CourierRunner
         private Color previousColor;
         private float previousStart;
         private float previousEnd;
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Register()
-        {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-            SceneManager.sceneLoaded += OnSceneLoaded;
-        }
-
-        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            if (!scene.name.Contains("CourierLevel")) return;
-            if (FindAnyObjectByType<CourierDistanceFog>() != null) return;
-            new GameObject("Courier Distance Fog").AddComponent<CourierDistanceFog>();
-        }
 
         private void Awake()
         {

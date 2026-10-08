@@ -1,7 +1,5 @@
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace CourierRunner.Editor
 {
@@ -27,10 +25,9 @@ namespace CourierRunner.Editor
                 EditorApplication.delayCall += Configure;
                 return;
             }
-            DeleteAllBushes();
+            DeleteBushAssets();
             CreateGroundMaterial();
             CreateGrassMaterial();
-            UpdateGroundMaterialsInEditableScene();
             AssetDatabase.SaveAssets();
             SessionState.SetBool(SessionKey, true);
             Debug.Log("Environment setup complete: path and single rock; all bushes removed.");
@@ -43,26 +40,8 @@ namespace CourierRunner.Editor
             EditorApplication.delayCall += Configure;
         }
 
-        private static void DeleteAllBushes()
+        private static void DeleteBushAssets()
         {
-            const string scenePath = "Assets/Scenes/CourierLevel.unity";
-            if (System.IO.File.Exists(scenePath))
-            {
-                Scene originalScene = SceneManager.GetActiveScene();
-                bool alreadyOpen = originalScene.path == scenePath;
-                Scene levelScene = alreadyOpen ? originalScene : EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
-                foreach (GameObject root in levelScene.GetRootGameObjects())
-                {
-                    Transform[] objects = root.GetComponentsInChildren<Transform>(true);
-                    for (int i = objects.Length - 1; i >= 0; i--)
-                        if (objects[i] != null &&
-                            (objects[i].name == "Bush1" || objects[i].name == "Bush2" ||
-                             objects[i].name.StartsWith("bush_")))
-                            Object.DestroyImmediate(objects[i].gameObject);
-                }
-                EditorSceneManager.SaveScene(levelScene);
-                if (!alreadyOpen) EditorSceneManager.CloseScene(levelScene, true);
-            }
             AssetDatabase.DeleteAsset("Assets/Resources/Environment/Bush1.prefab");
             AssetDatabase.DeleteAsset("Assets/Resources/Environment/Bush2.prefab");
             AssetDatabase.DeleteAsset("Assets/Art/Bush");
@@ -135,25 +114,6 @@ namespace CourierRunner.Editor
             material.SetVector("_WorldTiling", new Vector4(0.1f, 0.2f, 0f, 0f));
             if (isNew) AssetDatabase.CreateAsset(material, materialPath);
             else EditorUtility.SetDirty(material);
-        }
-
-        private static void UpdateGroundMaterialsInEditableScene()
-        {
-            const string scenePath = "Assets/Scenes/CourierLevel.unity";
-            if (!System.IO.File.Exists(scenePath)) return;
-            Scene originalScene = SceneManager.GetActiveScene();
-            bool alreadyOpen = originalScene.path == scenePath;
-            Scene levelScene = alreadyOpen ? originalScene : EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
-            Material path = AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/Environment/Path.mat");
-            Material grass = AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/Environment/Grass.mat");
-            foreach (GameObject root in levelScene.GetRootGameObjects())
-                foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
-                {
-                    if (renderer.gameObject.name == "Stone Forest Path") renderer.sharedMaterial = path;
-                    else if (renderer.gameObject.name == "Forest Grass") renderer.sharedMaterial = grass;
-                }
-            EditorSceneManager.SaveScene(levelScene);
-            if (!alreadyOpen) EditorSceneManager.CloseScene(levelScene, true);
         }
 
         private static void EnsureFolder(string parent, string child)
