@@ -20,6 +20,7 @@ namespace CourierRunner
         private Text coinText;
         private Text debugText;
         private Text alertText;
+        private PortraitStudio portraitStudio;
         private float alertUntil;
 
         private void Start()
@@ -43,10 +44,36 @@ namespace CourierRunner
 
         private void FinishRun(bool delivered)
         {
+            state = ScreenState.Result;
             if (delivered) SaveSystem.MarkLevelCompleted(GameSession.LevelId);
             int earned = delivered || GameConfig.Instance.keepCoinsOnFail ? runner.Coins : 0;
             SaveSystem.AddCoins(earned);
-            ShowResult(delivered, earned);
+
+            string dialogueId = delivered ? DeliveryDialogue(GameSession.LevelId) : null;
+            if (dialogueId != null && !SaveSystem.HasSeenDialogue(dialogueId)) PlayDialogue(dialogueId, () => ShowResult(true, earned));
+            else ShowResult(delivered, earned);
+        }
+
+        /// <summary>The scene played when a story delivery is completed, by level.</summary>
+        private static string DeliveryDialogue(string levelId) => levelId switch
+        {
+            LevelIds.CrystalMaiden => "crystal_maiden_delivery",
+            _ => null,
+        };
+
+        public void PlayDialogue(string dialogueId, System.Action onFinished)
+        {
+            DialogueData data = DialogueDatabase.Load(dialogueId);
+            if (data == null)
+            {
+                onFinished?.Invoke();
+                return;
+            }
+            ClearPage();
+            GameWorld world = GameWorld.Current;
+            if (portraitStudio == null && world != null) portraitStudio = PortraitStudio.Create(world.transform);
+            DialogueView view = DialogueView.Show(phone, data, portraitStudio, world != null ? world.Library : null, onFinished);
+            page = view.gameObject;
         }
 
         private void BuildCanvas()

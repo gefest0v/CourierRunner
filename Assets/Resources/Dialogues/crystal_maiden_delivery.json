@@ -1,0 +1,21 @@
+{
+  "id": "crystal_maiden_delivery",
+  "lines": [
+    { "speaker": "crystal_maiden", "side": "right", "emotion": "happy",
+      "text": "Ты всё-таки добрался! Я уже думала, что мои вещи навсегда останутся где-то между лесом и первой башней." },
+    { "speaker": "courier", "side": "left", "emotion": "sly",
+      "text": "Доставка точно в срок. Почти. Если не считать камней, огненных шаров и целой армии деревьев." },
+    { "speaker": "crystal_maiden", "side": "right", "emotion": "surprised",
+      "text": "Для обычного курьера ты удивительно живучий." },
+    { "speaker": "courier", "side": "left", "emotion": "neutral",
+      "text": "Это входит в стоимость доставки." },
+    { "speaker": "crystal_maiden", "side": "right", "emotion": "happy",
+      "text": "Тогда у меня есть кое-что, что облегчит твои следующие путешествия. Волшебные крылья смогут поднять тебя выше башен и самых опасных препятствий." },
+    { "speaker": "courier", "side": "left", "emotion": "worried",
+      "text": "Звучит дорого." },
+    { "speaker": "crystal_maiden", "side": "right", "emotion": "sly",
+      "text": "Магия вообще недешёвая. Собери {wings_price} золотых монет, и крылья станут твоими." },
+    { "speaker": "system", "side": "left", "emotion": "neutral", "reward": "wings", "action": "offer_wings",
+      "text": "Открыта новая награда: КРЫЛЬЯ. Накопите {wings_price} монет, чтобы разблокировать их появление на уровнях." }
+  ]
+}

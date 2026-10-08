@@ -1,0 +1,7 @@
+{
+  "characters": [
+    { "id": "crystal_maiden", "name": "Crystal Maiden", "color": "#8FD8FF", "portrait": "", "model": "crystal_maiden" },
+    { "id": "courier", "name": "Курьер", "color": "#FFC94A", "portrait": "", "model": "courier" },
+    { "id": "system", "name": "", "color": "#FFD54A", "portrait": "", "model": "" }
+  ]
+}

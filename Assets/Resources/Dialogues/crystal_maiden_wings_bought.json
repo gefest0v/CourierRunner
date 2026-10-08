@@ -1,0 +1,11 @@
+{
+  "id": "crystal_maiden_wings_bought",
+  "lines": [
+    { "speaker": "crystal_maiden", "side": "right", "emotion": "happy",
+      "text": "Теперь не бойся высоты. Бойся только того, что находится ещё выше." },
+    { "speaker": "courier", "side": "left", "emotion": "worried",
+      "text": "Это была поддержка или предупреждение?" },
+    { "speaker": "crystal_maiden", "side": "right", "emotion": "sly",
+      "text": "Да." }
+  ]
+}
