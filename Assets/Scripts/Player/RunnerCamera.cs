@@ -10,6 +10,8 @@ namespace CourierRunner
         private Camera gameCamera;
         private int lastScreenWidth;
         private int lastScreenHeight;
+        private float trauma;
+        private float heldTrauma;
 
         private void Awake()
         {
@@ -48,11 +50,27 @@ namespace CourierRunner
             lastScreenHeight = Screen.height;
         }
 
+        /// <summary>A one-off jolt (0..1) that fades out over about half a second.</summary>
+        public void AddShake(float amount) => trauma = Mathf.Clamp01(trauma + amount);
+
+        /// <summary>A continuous tremble for this frame only; call every frame while it should last.</summary>
+        public void HoldShake(float amount) => heldTrauma = Mathf.Max(heldTrauma, amount);
+
         private void LateUpdate()
         {
             if (target == null) return;
             transform.position = Vector3.Lerp(transform.position, target.position + offset, 8f * Time.deltaTime);
             transform.LookAt(target.position + new Vector3(0f, 1f, 4f));
+
+            float strength = Mathf.Max(trauma, heldTrauma);
+            heldTrauma = 0f;
+            trauma = Mathf.Max(0f, trauma - Time.deltaTime * 2f);
+            if (strength <= 0f) return;
+            // Squared so small values stay subtle; Perlin noise keeps the motion smooth.
+            float amplitude = strength * strength;
+            float time = Time.time * 25f;
+            transform.position += new Vector3(Mathf.PerlinNoise(time, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, time) - 0.5f, 0f) * amplitude * 1.2f;
+            transform.Rotate(0f, 0f, (Mathf.PerlinNoise(time, time * 0.5f) - 0.5f) * amplitude * 6f);
         }
     }
 }

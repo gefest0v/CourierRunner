@@ -61,6 +61,23 @@ namespace CourierRunner
         [Tooltip("Obstacle-free run-up before the recipient.")]
         public float storyCalmDistance = 25f;
 
+        [Header("Treants")]
+        [Tooltip("No treant event before this distance.")]
+        public float treantMinDistance = 250f;
+        [Tooltip("Minimum distance between treant events at difficulty 0.")]
+        public float treantCooldownEasy = 600f;
+        [Tooltip("Minimum distance between treant events at difficulty 1.")]
+        public float treantCooldownHard = 240f;
+        [Range(0f, 1f)] [Tooltip("Chance per eligible segment that an event starts.")]
+        public float treantChance = 0.5f;
+        public float treantSpeed = 8f;
+        [Tooltip("Obstacle-free grove segments that make up one event (warning, charge, pass).")]
+        public int treantEventSegments = 3;
+        [Tooltip("The treants start walking when the courier is this far into the event.")]
+        public float treantTriggerOffset = 10f;
+        [Tooltip("Distance between the two rows of a double formation.")]
+        public float treantRowGap = 26f;
+
         [Header("Backdrop")]
         [Tooltip("Distance from the camera to the painted forest horizon.")]
         public float backdropDistance = 80f;

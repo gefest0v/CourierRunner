@@ -19,6 +19,7 @@ namespace CourierRunner
         public const string Rock = "Rock - Jump";
         public const string Tower = "Lane Tower";
         public const string Fireball = "Tower Fireball";
+        public const string Treant = "Treant";
     }
 
     /// <summary>
@@ -68,6 +69,7 @@ namespace CourierRunner
                 template => template.AddComponent<TowerShooter>());
             Register(PoolKeys.Coin, CreateCoinTemplate());
             Register(PoolKeys.Fireball, TowerProjectile.CreateTemplate());
+            Register(PoolKeys.Treant, CreateTreantTemplate());
         }
 
         public static string ForestCardKey(int variant) => PoolKeys.ForestCard + " " + variant;
@@ -204,6 +206,103 @@ namespace CourierRunner
             trigger.radius = 0.45f;
             root.AddComponent<CoinPickup>();
             return root;
+        }
+
+        /// <summary>
+        /// Treant: uses Resources/Heroes/Treant if an artist adds it, otherwise a primitive stand-in
+        /// (trunk, crown, arms and glowing eyes facing the courier).
+        /// </summary>
+        private GameObject CreateTreantTemplate()
+        {
+            var root = new GameObject(PoolKeys.Treant);
+            root.transform.SetParent(templateRoot, false);
+            var body = new GameObject("Body");
+            body.transform.SetParent(root.transform, false);
+
+            if (Resources.Load<GameObject>("Heroes/Treant") != null)
+            {
+                GameObject model = BuildNormalizedModel("Treant Model", "Heroes/Treant", Treant.Height, 0f, null, Color.gray);
+                model.transform.SetParent(body.transform, false);
+                model.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            }
+            else
+            {
+                Material bark = ColorMaterial(new Color(0.33f, 0.22f, 0.13f));
+                Material leaves = ColorMaterial(new Color(0.18f, 0.42f, 0.16f));
+                Material moss = ColorMaterial(new Color(0.27f, 0.36f, 0.14f));
+                var eyes = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                eyes.SetColor("_BaseColor", new Color(1f, 0.9f, 0.3f));
+                eyes.SetColor("_EmissionColor", new Color(1f, 0.85f, 0.2f) * 3f);
+                eyes.EnableKeyword("_EMISSION");
+
+                AddPart(body.transform, PrimitiveType.Cube, new Vector3(-0.4f, 0.45f, 0f), new Vector3(0.55f, 0.9f, 0.55f), Vector3.zero, bark);
+                AddPart(body.transform, PrimitiveType.Cube, new Vector3(0.4f, 0.45f, 0f), new Vector3(0.55f, 0.9f, 0.55f), Vector3.zero, bark);
+                AddPart(body.transform, PrimitiveType.Cube, new Vector3(0f, 1.75f, 0f), new Vector3(1.4f, 1.9f, 1f), Vector3.zero, bark);
+                AddPart(body.transform, PrimitiveType.Cube, new Vector3(-1f, 2f, 0f), new Vector3(0.38f, 1.7f, 0.38f), new Vector3(0f, 0f, -28f), bark);
+                AddPart(body.transform, PrimitiveType.Cube, new Vector3(1f, 2f, 0f), new Vector3(0.38f, 1.7f, 0.38f), new Vector3(0f, 0f, 28f), bark);
+                AddPart(body.transform, PrimitiveType.Sphere, new Vector3(0f, 3.05f, 0.1f), new Vector3(2.5f, 1.5f, 1.9f), Vector3.zero, leaves);
+                AddPart(body.transform, PrimitiveType.Sphere, new Vector3(-0.8f, 2.75f, 0f), new Vector3(1.2f, 0.9f, 1.1f), Vector3.zero, moss);
+                AddPart(body.transform, PrimitiveType.Sphere, new Vector3(0.85f, 2.8f, 0f), new Vector3(1.1f, 0.85f, 1f), Vector3.zero, moss);
+                AddPart(body.transform, PrimitiveType.Sphere, new Vector3(-0.3f, 2.25f, -0.52f), Vector3.one * 0.22f, Vector3.zero, eyes);
+                AddPart(body.transform, PrimitiveType.Sphere, new Vector3(0.3f, 2.25f, -0.52f), Vector3.one * 0.22f, Vector3.zero, eyes);
+            }
+
+            BoxCollider hitbox = root.AddComponent<BoxCollider>();
+            hitbox.isTrigger = true;
+            hitbox.size = new Vector3(2.3f, Treant.Height, 1.4f);
+            hitbox.center = new Vector3(0f, Treant.Height * 0.5f, 0f);
+            Rigidbody rigidbody = root.AddComponent<Rigidbody>();
+            rigidbody.isKinematic = true;
+            rigidbody.useGravity = false;
+            CreateDust(root.transform);
+            root.AddComponent<Treant>();
+            return root;
+        }
+
+        private static void AddPart(Transform parent, PrimitiveType type, Vector3 position, Vector3 scale, Vector3 euler, Material material)
+        {
+            GameObject part = GameObject.CreatePrimitive(type);
+            UnityEngine.Object.DestroyImmediate(part.GetComponent<Collider>());
+            part.transform.SetParent(parent, false);
+            part.transform.localPosition = position;
+            part.transform.localScale = scale;
+            part.transform.localRotation = Quaternion.Euler(euler);
+            part.GetComponent<Renderer>().sharedMaterial = material;
+        }
+
+        /// <summary>Clouds of earth kicked up by the treant's steps.</summary>
+        private static void CreateDust(Transform parent)
+        {
+            var dustObject = new GameObject("Dust");
+            dustObject.transform.SetParent(parent, false);
+            dustObject.transform.localPosition = new Vector3(0f, 0.15f, 0.3f);
+            ParticleSystem dust = dustObject.AddComponent<ParticleSystem>();
+            dust.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ParticleSystem.MainModule main = dust.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.startLifetime = 0.9f;
+            main.startSpeed = 1.6f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 1.2f);
+            main.startColor = new Color(0.45f, 0.36f, 0.25f, 0.55f);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 60;
+            ParticleSystem.EmissionModule emission = dust.emission;
+            emission.rateOverTime = 28f;
+            ParticleSystem.ShapeModule shape = dust.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(1.6f, 0.1f, 0.6f);
+            ParticleSystem.ColorOverLifetimeModule fade = dust.colorOverLifetime;
+            fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
+            fade.color = gradient;
+            ParticleSystemRenderer renderer = dustObject.GetComponent<ParticleSystemRenderer>();
+            var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            material.SetColor("_BaseColor", new Color(0.55f, 0.45f, 0.32f, 0.6f));
+            renderer.sharedMaterial = material;
         }
 
         /// <summary>The courier's visual model, or a capsule if the prefab is missing.</summary>

@@ -65,7 +65,9 @@ namespace CourierRunner
                 }
                 if (pending.Count == 0) PlanFrom(nextRowZ);
                 PlannedRow row = pending.Dequeue();
-                if (nextRowZ >= segment.StartZ) EmitRow(context, row, nextRowZ - segment.StartZ);
+                // Event segments (treants) keep the road clear; skipping obstacles never breaks a path.
+                if (nextRowZ >= segment.StartZ && segment.Profile.allowsGeneratedRows)
+                    EmitRow(context, row, nextRowZ - segment.StartZ);
                 nextRowZ += row.SpacingAfter;
             }
         }

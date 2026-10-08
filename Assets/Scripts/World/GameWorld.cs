@@ -19,6 +19,7 @@ namespace CourierRunner
         public SegmentManager Segments { get; private set; }
         public DifficultyDirector Difficulty { get; private set; }
         public PatternGenerator Generator { get; private set; }
+        public TreantEncounterManager Treants { get; private set; }
         public Material GrassMaterial { get; private set; }
         public Material PathMaterial { get; private set; }
         /// <summary>True when the scene was reloaded to start a run right away (retry / level select).</summary>
@@ -67,6 +68,8 @@ namespace CourierRunner
             Segments = gameObject.AddComponent<SegmentManager>();
             Segments.Initialize(this, Generator);
             int seed = GameSession.Mode == RunMode.Story ? config.storySeed : Random.Range(1, int.MaxValue);
+            Treants = gameObject.AddComponent<TreantEncounterManager>();
+            Treants.Initialize(this, seed);
             Segments.Begin(GameSession.Mode, seed);
 
             gameObject.AddComponent<GameFlowUI>().runner = Runner;

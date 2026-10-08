@@ -38,6 +38,14 @@ MonoBehaviour:
   storyLevelLength: 700
   storySeed: 1001
   storyCalmDistance: 25
+  treantMinDistance: 250
+  treantCooldownEasy: 600
+  treantCooldownHard: 240
+  treantChance: 0.5
+  treantSpeed: 8
+  treantEventSegments: 3
+  treantTriggerOffset: 10
+  treantRowGap: 26
   backdropDistance: 80
   keepCoinsOnFail: 1
   wingsPrice: 300

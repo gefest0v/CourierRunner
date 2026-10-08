@@ -30,6 +30,8 @@ namespace CourierRunner
         public bool allowsObstacles = true;
         public bool allowsTowers;
         public bool allowsPowerUps = true;
+        /// <summary>False for event segments: the pattern generator leaves them to the event.</summary>
+        public bool allowsGeneratedRows = true;
 
         public static ThemeProfile For(SegmentTheme theme) => theme switch
         {
@@ -39,7 +41,7 @@ namespace CourierRunner
             SegmentTheme.Fenced => new ThemeProfile { treesPerSide = 5, treeMinX = 8.5f, fences = true, rocksPerSide = 1 },
             SegmentTheme.Towers => new ThemeProfile { treesPerSide = 5, treeMinX = 8f, rocksPerSide = 2, allowsTowers = true },
             SegmentTheme.Clearing => new ThemeProfile { treesPerSide = 2, treeMinX = 11f, treeMaxX = 19f, stumps = 2, wells = 1 },
-            SegmentTheme.TreantGrove => new ThemeProfile { treesPerSide = 6, treeMinX = 9f, treeMaxX = 18f, pineShare = 0.2f, allowsObstacles = false, allowsPowerUps = false },
+            SegmentTheme.TreantGrove => new ThemeProfile { treesPerSide = 6, treeMinX = 9f, treeMaxX = 18f, pineShare = 0.2f, allowsObstacles = false, allowsPowerUps = false, allowsGeneratedRows = false },
             SegmentTheme.Safe => new ThemeProfile { treesPerSide = 6, treeMinX = 7.5f, rocksPerSide = 1, allowsObstacles = false },
             SegmentTheme.Finish => new ThemeProfile { treesPerSide = 3, treeMinX = 10f, stumps = 1, allowsObstacles = false, allowsPowerUps = false },
             _ => new ThemeProfile { treesPerSide = 5 },

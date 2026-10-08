@@ -19,11 +19,14 @@ namespace CourierRunner
         private GameObject gameplayHud;
         private Text coinText;
         private Text debugText;
+        private Text alertText;
+        private float alertUntil;
 
         private void Start()
         {
             BuildCanvas();
             GameWorld world = GameWorld.Current;
+            if (world != null && world.Treants != null) world.Treants.Warning += text => ShowAlert(text, 2.2f);
             if (world != null && world.AutoStart) StartGameplay();
             else ShowMainMenu();
         }
@@ -33,6 +36,7 @@ namespace CourierRunner
             if (state != ScreenState.Playing || runner == null) return;
             coinText.text = $"ЗОЛОТО  {runner.Coins}";
             UpdateDebugText();
+            UpdateAlert();
             if (runner.IsRunning || !runner.HasStarted) return;
             FinishRun(runner.HasDelivered);
         }
@@ -197,11 +201,33 @@ namespace CourierRunner
             Image coinPlate = CreateImage("Coin Plate", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
             SetAnchors(coinPlate.rectTransform, new Vector2(0.04f, 0.91f), new Vector2(0.40f, 0.97f));
             coinText = CreateText(coinPlate.transform, "ЗОЛОТО  0", 28, FontStyle.Bold, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, Gold);
+            alertText = CreateText(gameplayHud.transform, string.Empty, 64, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.05f, 0.62f), new Vector2(0.95f, 0.74f), new Color(1f, 0.55f, 0.25f, 0f));
+            alertText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
             if (Debug.isDebugBuild)
                 debugText = CreateText(gameplayHud.transform, string.Empty, 20, FontStyle.Normal, TextAnchor.UpperLeft,
                     new Vector2(0.04f, 0.80f), new Vector2(0.96f, 0.90f), new Color(1f, 1f, 1f, 0.75f));
 
             runner.BeginRun();
+        }
+
+        /// <summary>Big centered warning for events such as the treant charge.</summary>
+        public void ShowAlert(string text, float duration)
+        {
+            if (alertText == null) return;
+            alertText.text = text;
+            alertUntil = Time.time + duration;
+        }
+
+        private void UpdateAlert()
+        {
+            if (alertText == null) return;
+            float remaining = alertUntil - Time.time;
+            // Pulses while visible, then fades out over the last half second.
+            float alpha = Mathf.Clamp01(remaining / 0.5f) * (0.75f + 0.25f * Mathf.Sin(Time.time * 14f));
+            Color color = alertText.color;
+            color.a = Mathf.Max(0f, alpha);
+            alertText.color = color;
         }
 
         /// <summary>Tester overlay (editor and development builds only).</summary>

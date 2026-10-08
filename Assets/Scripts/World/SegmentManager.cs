@@ -11,10 +11,13 @@ namespace CourierRunner
     public sealed class SegmentManager : MonoBehaviour
     {
         public event Action<TrackSegment> SegmentPlaced;
+        /// <summary>A treant event will occupy [start, end) of the track. Raised before its segments are placed.</summary>
+        public event Action<float, float> TreantEventScheduled;
 
         private readonly List<TrackSegment> active = new();
         private readonly Stack<TrackSegment> spare = new();
         private readonly SegmentBuildContext context = new();
+        private readonly Queue<SegmentTheme> forcedThemes = new();
 
         private GameWorld world;
         private GameConfig config;
@@ -26,6 +29,7 @@ namespace CourierRunner
         private bool finishPlaced;
         private SegmentTheme lastTheme;
         private int themeRepeat;
+        private float lastEventEndZ;
 
         public IReadOnlyList<TrackSegment> Active => active;
         public RunMode Mode { get; private set; }
@@ -57,6 +61,8 @@ namespace CourierRunner
             seed = runSeed;
             themeRandom = new System.Random(runSeed);
             finishPlaced = false;
+            forcedThemes.Clear();
+            lastEventEndZ = float.NegativeInfinity;
             FinishZ = mode == RunMode.Story ? config.storyLevelLength : float.PositiveInfinity;
             context.StopZ = mode == RunMode.Story ? config.storyLevelLength - config.storyCalmDistance : float.PositiveInfinity;
             populator?.BeginRun(mode, runSeed);
@@ -134,6 +140,19 @@ namespace CourierRunner
                 if (startZ + config.segmentLength >= FinishZ) return SegmentTheme.Safe;
             }
 
+            if (forcedThemes.Count > 0) return forcedThemes.Dequeue();
+            if (ShouldStartTreantEvent(startZ))
+            {
+                // Warning stretch + charge + recovery: all grove segments are free of other obstacles.
+                int groveSegments = Mathf.Max(2, config.treantEventSegments);
+                float endZ = startZ + groveSegments * config.segmentLength;
+                for (int i = 1; i < groveSegments; i++) forcedThemes.Enqueue(SegmentTheme.TreantGrove);
+                forcedThemes.Enqueue(SegmentTheme.Safe);
+                lastEventEndZ = endZ;
+                TreantEventScheduled?.Invoke(startZ, endZ);
+                return SegmentTheme.TreantGrove;
+            }
+
             SegmentTheme theme = RegularThemes[themeRandom.Next(RegularThemes.Length)];
             // Never show the same look more than twice in a row.
             for (int attempt = 0; theme == lastTheme && themeRepeat >= 1 && attempt < 8; attempt++)
@@ -141,6 +160,21 @@ namespace CourierRunner
             themeRepeat = theme == lastTheme ? themeRepeat + 1 : 0;
             lastTheme = theme;
             return theme;
+        }
+
+        private bool ShouldStartTreantEvent(float startZ)
+        {
+            if (startZ < config.treantMinDistance) return false;
+            float difficulty = world.Difficulty.DifficultyAt(startZ);
+            float cooldown = Mathf.Lerp(config.treantCooldownEasy, config.treantCooldownHard, difficulty);
+            if (startZ - lastEventEndZ < cooldown) return false;
+            // The event plus its recovery segment must end well before the story recipient.
+            float eventEnd = startZ + (config.treantEventSegments + 1) * config.segmentLength;
+            float limit = config.storyLevelLength - config.storyCalmDistance;
+            if (Mode == RunMode.Story && eventEnd > limit) return false;
+            // A story level always gets its treants: the last possible slot is taken for sure.
+            bool lastChance = Mode == RunMode.Story && eventEnd + config.segmentLength > limit;
+            return lastChance || themeRandom.NextDouble() < config.treantChance;
         }
 
         private static readonly SegmentTheme[] RegularThemes =
