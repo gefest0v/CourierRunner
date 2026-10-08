@@ -12,18 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23f782d619784896b6239279d02b40ef, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: 
-  startSpeed: 9
+  startSpeed: 11
   laneWidth: 3
   laneChangeSpeed: 12
   jumpHeight: 2.15
-  jumpLength: 11
+  jumpLength: 9
   swipeThreshold: 40
-  maxSpeed: 18
-  rowSpacingEasy: 16
-  rowSpacingHard: 10
-  storyDifficultyStart: 0.05
-  storyDifficultyEnd: 0.45
-  endlessDifficultyDistance: 2500
+  maxSpeed: 21
+  rowSpacingEasy: 13
+  rowSpacingHard: 9
+  storyDifficultyStart: 0.2
+  storyDifficultyEnd: 0.65
+  endlessDifficultyDistance: 1400
   difficultySteps: 10
   towerFireIntervalEasy: 1.6
   towerFireIntervalHard: 0.8
@@ -38,14 +38,17 @@ MonoBehaviour:
   storyLevelLength: 700
   storySeed: 1001
   storyCalmDistance: 25
-  treantMinDistance: 250
-  treantCooldownEasy: 600
-  treantCooldownHard: 240
-  treantChance: 0.5
+  treantMinDistance: 160
+  treantCooldownEasy: 300
+  treantCooldownHard: 140
+  treantChance: 0.75
   treantSpeed: 8
-  treantEventSegments: 3
+  treantEventSegments: 4
   treantTriggerOffset: 10
-  treantRowGap: 26
+  treantRowGap: 30
+  treantColumnMax: 3
+  treantColumnSpacing: 3.6
+  towerBaitCoins: 3
   backdropDistance: 80
   keepCoinsOnFail: 1
   wingsPrice: 300

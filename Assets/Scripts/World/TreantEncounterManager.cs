@@ -15,8 +15,11 @@ namespace CourierRunner
         {
             public float StartZ;
             public float EndZ;
-            /// <summary>Per row: which lanes (0..2) are blocked, and how far behind the first row it walks.</summary>
-            public readonly List<(bool[] blocked, float offset)> Rows = new();
+            /// <summary>
+            /// Per wave: how many treants march in a column in each lane (0 = the free lane), and how far
+            /// behind the first wave it starts.
+            /// </summary>
+            public readonly List<(int[] columns, float offset)> Rows = new();
             public bool Launched;
         }
 
@@ -42,32 +45,26 @@ namespace CourierRunner
         {
             var encounter = new Encounter { StartZ = startZ, EndZ = endZ };
             float difficulty = world.Difficulty.DifficultyAt(startZ);
-            double roll = random.NextDouble();
-            if (difficulty < 0.25f && roll < 0.4)
+            // Several waves; the free lane moves between them, so the courier has to keep switching.
+            int waves = difficulty < 0.3f ? 2 : difficulty < 0.6f ? 2 + random.Next(2) : 3;
+            int maxColumn = Mathf.Clamp(difficulty < 0.3f ? 2 : config.treantColumnMax, 1, 6);
+            int free = random.Next(3);
+            float offset = 0f;
+            for (int wave = 0; wave < waves; wave++)
             {
-                // One central treant: the gentlest introduction.
-                encounter.Rows.Add((new[] { false, true, false }, 0f));
-            }
-            else if (difficulty >= 0.35f && roll < 0.35 + difficulty * 0.4)
-            {
-                // Two rows: the free lane moves, so the courier must switch lanes between them.
-                int firstFree = random.Next(3);
-                int secondFree = (firstFree + 1 + random.Next(2)) % 3;
-                encounter.Rows.Add((Blocked(firstFree), 0f));
-                encounter.Rows.Add((Blocked(secondFree), config.treantRowGap));
-            }
-            else
-            {
-                encounter.Rows.Add((Blocked(random.Next(3)), 0f));
+                var columns = new int[3];
+                int longest = 0;
+                for (int lane = 0; lane < 3; lane++)
+                {
+                    if (lane == free) continue;
+                    columns[lane] = 1 + random.Next(maxColumn);
+                    longest = Mathf.Max(longest, columns[lane]);
+                }
+                encounter.Rows.Add((columns, offset));
+                offset += (longest - 1) * config.treantColumnSpacing + config.treantRowGap;
+                free = (free + 1 + random.Next(2)) % 3;
             }
             encounters.Add(encounter);
-        }
-
-        private static bool[] Blocked(int freeLane)
-        {
-            var blocked = new bool[3];
-            for (int lane = 0; lane < 3; lane++) blocked[lane] = lane != freeLane;
-            return blocked;
         }
 
         /// <summary>Lays a coin trail along the free lane so the safe line is readable from afar.</summary>
@@ -80,8 +77,8 @@ namespace CourierRunner
             float speed = world.Difficulty.SpeedAt(encounter.StartZ);
             for (int row = 0; row < encounter.Rows.Count; row++)
             {
-                int free = Array.IndexOf(encounter.Rows[row].blocked, false);
-                float from = row == 0 ? encounter.StartZ + 18f : MeetingZ(encounter, row - 1, speed) + 4f;
+                int free = Array.IndexOf(encounter.Rows[row].columns, 0);
+                float from = row == 0 ? encounter.StartZ + 18f : LastMeetingZ(encounter, row - 1, speed) + 4f;
                 float to = MeetingZ(encounter, row, speed) - 3f;
                 for (float z = from; z <= to; z += 3f)
                 {
@@ -97,6 +94,14 @@ namespace CourierRunner
             float launchZ = encounter.StartZ + config.treantTriggerOffset;
             float spawnZ = SpawnZ(encounter, row);
             return launchZ + (spawnZ - launchZ) * speed / (speed + config.treantSpeed);
+        }
+
+        /// <summary>Where the courier passes the last treant of a wave's longest column.</summary>
+        private float LastMeetingZ(Encounter encounter, int row, float speed)
+        {
+            int longest = Mathf.Max(encounter.Rows[row].columns[0], Mathf.Max(encounter.Rows[row].columns[1], encounter.Rows[row].columns[2]));
+            float columnLength = (longest - 1) * config.treantColumnSpacing;
+            return MeetingZ(encounter, row, speed) + columnLength * speed / (speed + config.treantSpeed);
         }
 
         private float SpawnZ(Encounter encounter, int row) => encounter.EndZ - 4f + encounter.Rows[row].offset;
@@ -119,16 +124,17 @@ namespace CourierRunner
             encounter.Launched = true;
             for (int row = 0; row < encounter.Rows.Count; row++)
             {
-                (bool[] blocked, float _) = encounter.Rows[row];
+                (int[] columns, float _) = encounter.Rows[row];
                 for (int lane = 0; lane < 3; lane++)
-                {
-                    if (!blocked[lane]) continue;
-                    Vector3 local = new((lane - 1) * config.laneWidth, 0f, SpawnZ(encounter, row));
-                    // Treant templates face -Z, toward the oncoming courier.
-                    Treant treant = world.Library.Get(PoolKeys.Treant, world.Root, local).GetComponent<Treant>();
-                    treant.Launch(config.treantSpeed);
-                    walking.Add(treant);
-                }
+                    for (int i = 0; i < columns[lane]; i++)
+                    {
+                        // A column marches single file down the lane.
+                        Vector3 local = new((lane - 1) * config.laneWidth, 0f, SpawnZ(encounter, row) + i * config.treantColumnSpacing);
+                        // Treant templates face -Z, toward the oncoming courier.
+                        Treant treant = world.Library.Get(PoolKeys.Treant, world.Root, local).GetComponent<Treant>();
+                        treant.Launch(config.treantSpeed);
+                        walking.Add(treant);
+                    }
             }
             Warning?.Invoke("ТРЕНТЫ ИДУТ!");
             if (world.Runner.IsRunning) world.RunnerCamera.AddShake(0.35f);

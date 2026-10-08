@@ -91,7 +91,7 @@ namespace CourierRunner
             Register(PoolKeys.Wings, CreateWingsPickupTemplate());
 
             // Objects that first appear mid-run are created up front to avoid a hitch.
-            pools[PoolKeys.Treant].Prewarm(4);
+            pools[PoolKeys.Treant].Prewarm(18);
             pools[PoolKeys.Fireball].Prewarm(6);
             pools[PoolKeys.Wings].Prewarm(1);
         }

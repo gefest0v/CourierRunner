@@ -28,6 +28,9 @@ namespace CourierRunner
         private readonly DifficultyDirector director;
         private readonly Queue<PlannedRow> pending = new();
         private readonly List<ObstaclePattern> candidates = new();
+        /// <summary>The last rows already planned; new patterns are validated together with them.</summary>
+        private readonly List<PatternCell[]> history = new();
+        private const int HistoryRows = 2;
         private static readonly PatternCell[] EmptyRow = new PatternCell[3];
 
         private System.Random random;
@@ -53,6 +56,7 @@ namespace CourierRunner
         {
             random = new System.Random(seed);
             pending.Clear();
+            history.Clear();
             nextRowZ = IntroRowSpacing * 1.5f;
             recoveryRows = 1;
             coinLane = 1;
@@ -84,7 +88,7 @@ namespace CourierRunner
             if (z < config.safeStartDistance)
             {
                 // Warm-up: a few coin lines on an empty road.
-                pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = IntroRowSpacing, Coins = true, CoinLane = coinLane });
+                Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = IntroRowSpacing, Coins = true, CoinLane = coinLane });
                 return;
             }
 
@@ -95,31 +99,36 @@ namespace CourierRunner
                 PlanWings(spacing);
                 return;
             }
-            if (!TryChoosePattern(z, difficulty, spacing, out PatternCell[][] rows, out PatternPath path))
+            int recovery = recoveryRows;
+            if (!TryChoosePattern(z, difficulty, spacing, out PatternCell[][] rows, out PatternPath path, out int offset))
             {
-                pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = coinLane });
+                Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = coinLane });
                 return;
             }
 
-            // Recovery rows lead the coins into the lane where the pattern is entered safely.
-            int entryLane = path.Lanes[0];
-            for (int i = 0; i < recoveryRows; i++)
-            {
-                int lane = i == recoveryRows - 1 ? entryLane : coinLane;
-                pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = random.NextDouble() < 0.7, CoinLane = lane });
-            }
+            // The path covers the previous rows, the recovery rows and the new pattern; coins follow it.
+            for (int i = 0; i < recovery; i++)
+                Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = random.NextDouble() < 0.7, CoinLane = path.Lanes[offset + i] });
             for (int r = 0; r < rows.Length; r++)
             {
-                pending.Enqueue(new PlannedRow
+                int index = offset + recovery + r;
+                Enqueue(new PlannedRow
                 {
                     Cells = rows[r],
                     SpacingAfter = spacing,
                     Coins = random.NextDouble() < 0.9,
-                    CoinLane = path.Lanes[r],
-                    CoinArc = path.Jumps[r],
+                    CoinLane = path.Lanes[index],
+                    CoinArc = path.Jumps[index],
                 });
             }
-            coinLane = path.Lanes[rows.Length - 1];
+            coinLane = path.Lanes[path.Lanes.Length - 1];
+        }
+
+        private void Enqueue(PlannedRow row)
+        {
+            pending.Enqueue(row);
+            history.Add(row.Cells);
+            if (history.Count > HistoryRows) history.RemoveAt(0);
         }
 
         /// <summary>Wings only after they were bought, never too often, and instead of an obstacle pattern.</summary>
@@ -139,18 +148,25 @@ namespace CourierRunner
             int lane = random.Next(3);
             int calmRows = Mathf.Max(recoveryRows, 1);
             for (int i = 0; i < calmRows; i++)
-                pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = coinLane });
+                Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = coinLane });
             for (int i = 0; i < 2; i++)
-                pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = lane });
-            pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, PowerUp = true, CoinLane = lane });
-            pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = false, CoinLane = lane });
+                Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = lane });
+            Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, PowerUp = true, CoinLane = lane });
+            Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = false, CoinLane = lane });
             coinLane = lane;
             recoveryRows = 0;
             LastPattern = "wings";
         }
 
-        private bool TryChoosePattern(float z, float difficulty, float spacing, out PatternCell[][] rows, out PatternPath path)
+        /// <summary>
+        /// Picks a pattern and validates it together with the last planned rows and the recovery rows, so
+        /// patterns can follow each other closely without an impassable join. <paramref name="offset"/> is
+        /// where the recovery rows start in the returned path.
+        /// </summary>
+        private bool TryChoosePattern(float z, float difficulty, float spacing, out PatternCell[][] rows, out PatternPath path,
+            out int offset)
         {
+            offset = history.Count;
             candidates.Clear();
             foreach (ObstaclePattern pattern in PatternLibrary.All)
                 if (pattern.MinDifficulty <= difficulty) candidates.Add(pattern);
@@ -159,10 +175,13 @@ namespace CourierRunner
             {
                 ObstaclePattern pattern = PickWeighted(difficulty);
                 rows = Instantiate(pattern, random.Next(2) == 0);
+                var combined = new List<PatternCell[]>(history);
+                for (int i = 0; i < recoveryRows; i++) combined.Add(EmptyRow);
+                combined.AddRange(rows);
                 // Check against the fastest speed the courier can have while inside this pattern.
                 float end = z + (recoveryRows + rows.Length) * spacing;
                 PassabilityRules rules = PassabilityRules.From(config, spacing, director.SpeedAt(end));
-                if (PatternValidator.TryFindPath(rows, rules, -1, out path, out string error))
+                if (PatternValidator.TryFindPath(combined.ToArray(), rules, -1, out path, out string error))
                 {
                     recoveryRows = pattern.RecoveryRows;
                     LastPattern = pattern.Name;
@@ -237,6 +256,10 @@ namespace CourierRunner
                 if (key == null) continue;
                 context.Library.Get(key, segment.Gameplay, segment.LanePoint(lane - 1, localZ));
                 if (lane == row.CoinLane) arcHasObstacle = true;
+                // Coins in a tower's lane just before it: grabbing them means stepping into its fire.
+                if (key == PoolKeys.Tower)
+                    for (int i = 0; i < config.towerBaitCoins; i++)
+                        context.Library.Get(PoolKeys.Coin, segment.Gameplay, segment.LanePoint(lane - 1, localZ - 4.5f - i * 2.5f, 1f));
             }
 
             if (!row.Coins) return;
