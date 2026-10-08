@@ -73,6 +73,31 @@ namespace CourierRunner
             return button;
         }
 
+        /// <summary>A flat colored button with plain white text (map, settings and dialogue screens).</summary>
+        public static Button CreatePlainButton(Transform parent, string label, Vector2 min, Vector2 max, Color color, int size = 38)
+        {
+            Image image = CreateImage(label + " Button", parent, color);
+            SetAnchors(image.rectTransform, min, max);
+            Button button = image.gameObject.AddComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
+            colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
+            colors.disabledColor = Color.Lerp(color, Color.gray, 0.6f);
+            button.colors = colors;
+            CreatePlainText(image.transform, label, size, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.04f, 0.06f), new Vector2(0.96f, 0.94f), Color.white);
+            return button;
+        }
+
+        /// <summary>Text without the outline used by the styled screens.</summary>
+        public static Text CreatePlainText(Transform parent, string value, int size, FontStyle style, TextAnchor alignment,
+            Vector2 min, Vector2 max, Color color)
+        {
+            Text text = CreateText(parent, value, size, style, alignment, min, max, color);
+            Object.Destroy(text.GetComponent<Outline>());
+            return text;
+        }
+
         /// <summary>Replaces a button's art with a full image (no slicing), e.g. the illustrated Play button.</summary>
         public static void ApplyButtonArt(Button button, string resourcePath)
         {

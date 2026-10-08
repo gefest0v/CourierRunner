@@ -16,7 +16,8 @@ namespace CourierRunner
         public const string Coin = "Gold";
         /// <summary>Low jumpable obstacles made of wood: a fallen log and a broad stump.</summary>
         public static readonly string[] Walls = { "Fallen Log - Jump", "Stump - Jump" };
-        public static readonly string[] Rocks = { "Rock - Jump 1", "Rock - Jump 2" };
+        /// <summary>Only the single big boulder: the rock clusters have gaps that a box hitbox cannot follow.</summary>
+        public static readonly string[] Rocks = { "Rock - Jump" };
         public const string Tower = "Lane Tower";
         public const string Fireball = "Tower Fireball";
         public const string Treant = "Treant";
@@ -76,8 +77,8 @@ namespace CourierRunner
 
             Register(PoolKeys.Walls[0], CreateFallenLog(stump));
             RegisterModel(PoolKeys.Walls[1], "Trees/TreeStump", 1.3f, 2.2f, stump, true, new Color(0.4f, 0.28f, 0.16f));
-            RegisterModel(PoolKeys.Rocks[0], "Decorations/Rock1", 1.25f, 2.3f, rock, true, new Color(0.45f, 0.45f, 0.48f));
-            RegisterModel(PoolKeys.Rocks[1], "Decorations/Rock2", 1.25f, 2.3f, rock, true, new Color(0.45f, 0.45f, 0.48f));
+            RegisterModel(PoolKeys.Rocks[0], "Environment/RockSingle", 1.25f, 2.3f, null, true, new Color(0.45f, 0.45f, 0.48f),
+                yUp: true);
             RegisterModel(PoolKeys.Tower, "Tower/Tower", 3.4f, 2.5f, tower, true, new Color(0.35f, 0.18f, 0.22f),
                 template =>
                 {
@@ -192,7 +193,6 @@ namespace CourierRunner
         {
             var pivot = new GameObject(ForestCardKey(variant));
             pivot.transform.SetParent(templateRoot, false);
-            pivot.AddComponent<ForestBillboard>();
             Material material = Resources.Load<Material>($"Environment/PointForest1{variant + 1}");
             Texture texture = material != null ? material.GetTexture("_BaseMap") : null;
             float aspect = texture != null ? (float)texture.height / texture.width : 0.81f;

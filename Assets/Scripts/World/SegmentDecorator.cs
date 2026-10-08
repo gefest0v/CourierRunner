@@ -37,7 +37,8 @@ namespace CourierRunner
                 {
                     int variant = random.Next(ModelLibrary.ForestCardVariants);
                     float x = s * Range(random, 10f, 30f);
-                    GameObject card = library.Get(ModelLibrary.ForestCardKey(variant), segment.Decor, new Vector3(x, 0f, z));
+                    // Static, turned 45 degrees toward the road ahead so the painting reads from the camera.
+                    GameObject card = library.Get(ModelLibrary.ForestCardKey(variant), segment.Decor, new Vector3(x, 0f, z), s * 45f);
                     // Further cards are larger so the forest keeps getting taller toward the back.
                     float depth = Mathf.InverseLerp(10f, 30f, Mathf.Abs(x));
                     card.transform.localScale = Vector3.one * Range(random, 0.9f, 1.25f) * Mathf.Lerp(1f, 1.5f, depth);

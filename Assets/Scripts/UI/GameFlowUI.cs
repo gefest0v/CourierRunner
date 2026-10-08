@@ -148,19 +148,12 @@ namespace CourierRunner
                 floatingTitle.gameObject.AddComponent<MenuArtFloat>();
             }
 
-            CreateBalancePlate(page.transform);
-            if (SaveSystem.Data.wingsPurchased)
-            {
-                Image transport = CreatePanel("Transport Plate", page.transform, new Vector2(0.5f, 0.895f), new Vector2(0.97f, 0.945f), 26f);
-                CreateText(transport.transform, "Транспорт: крылья ✓", 24, FontStyle.Bold, TextAnchor.MiddleCenter,
-                    new Vector2(0.08f, 0.1f), new Vector2(0.92f, 0.9f), new Color(0.75f, 0.92f, 1f));
-            }
-
-            Button upgrades = CreateButton(page.transform, "УЛУЧШЕНИЯ", new Vector2(0.11f, 0.165f), new Vector2(0.89f, 0.245f),
-                new Color(0.55f, 0.8f, 1f), 34);
+            // Same size as the settings button, stacked right above it.
+            Button upgrades = CreateButton(page.transform, string.Empty, new Vector2(0.765f, 0.17f), new Vector2(0.955f, 0.28f), Color.white, 40);
+            ApplyButtonArt(upgrades, "UI/UpgradesButton");
             upgrades.onClick.AddListener(ShowShop);
             if (SaveSystem.Data.wingsOffered && !SaveSystem.Data.wingsPurchased && SaveSystem.Coins >= GameConfig.Instance.wingsPrice)
-                CreateCoinIcon(upgrades.transform, new Vector2(0.78f, 0.25f), new Vector2(0.86f, 0.75f));
+                CreateCoinIcon(upgrades.transform, new Vector2(0.62f, 0.62f), new Vector2(0.98f, 0.98f));
 
             Button play = CreateButton(page.transform, "▶   ИГРАТЬ", new Vector2(0.045f, 0.045f), new Vector2(0.72f, 0.155f), Ice, 42);
             ApplyButtonArt(play, "UI/PlayButton");
@@ -174,10 +167,9 @@ namespace CourierRunner
 
         private void CreateBalancePlate(Transform parent)
         {
-            Image plate = CreatePanel("Balance Plate", parent, new Vector2(0.6f, 0.945f), new Vector2(0.97f, 0.995f), 28f);
-            CreateCoinIcon(plate.transform, new Vector2(0.1f, 0.18f), new Vector2(0.32f, 0.82f));
-            CreateText(plate.transform, SaveSystem.Coins.ToString(), 34, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.3f, 0.1f), new Vector2(0.92f, 0.9f), Gold);
+            CreateCoinIcon(parent, new Vector2(0.66f, 0.948f), new Vector2(0.74f, 0.992f));
+            CreateText(parent, SaveSystem.Coins.ToString(), 40, FontStyle.Bold, TextAnchor.MiddleLeft,
+                new Vector2(0.75f, 0.945f), new Vector2(0.97f, 0.995f), Gold);
         }
 
         private void ShowMap()
@@ -186,32 +178,31 @@ namespace CourierRunner
             ClearPage();
             screenBackground.gameObject.SetActive(true);
             page = CreatePage("Level Map", Navy);
-            CreateBalancePlate(page.transform);
-            CreateText(page.transform, "КАРТА ДОСТАВОК", 64, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.06f, 0.84f), new Vector2(0.94f, 0.93f), Gold);
-            CreateText(page.transform, "Выбери героя, которому нужна доставка", 30, FontStyle.Normal, TextAnchor.MiddleCenter,
-                new Vector2(0.08f, 0.78f), new Vector2(0.92f, 0.84f), Parchment);
+            CreatePlainText(page.transform, "КАРТА ДОСТАВОК", 58, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.06f, 0.84f), new Vector2(0.94f, 0.94f), Color.white);
+            CreatePlainText(page.transform, "Выбери героя, которому нужна доставка", 27, FontStyle.Normal, TextAnchor.MiddleCenter,
+                new Vector2(0.08f, 0.77f), new Vector2(0.92f, 0.84f), new Color(0.7f, 0.82f, 0.95f));
 
             bool completed = SaveSystem.IsLevelCompleted(LevelIds.CrystalMaiden);
             string icon = completed ? "✓" : "❄";
             Color cardColor = completed ? new Color(0.18f, 0.62f, 0.42f) : Violet;
-            Button level = CreateButton(page.transform, icon + "\nCRYSTAL MAIDEN\nУровень 1", new Vector2(0.14f, 0.5f), new Vector2(0.86f, 0.72f), cardColor, 36);
+            Button level = CreatePlainButton(page.transform, icon + "\nCRYSTAL MAIDEN\nУровень 1", new Vector2(0.14f, 0.5f), new Vector2(0.86f, 0.72f), cardColor, 36);
             level.onClick.AddListener(() => GameSession.StartRun(RunMode.Story, LevelIds.CrystalMaiden));
-            CreateText(page.transform, completed ? "Доставка выполнена" : "Доступно", 28, FontStyle.Bold, TextAnchor.MiddleCenter,
+            CreatePlainText(page.transform, completed ? "Доставка выполнена" : "Доступно", 28, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.14f, 0.45f), new Vector2(0.86f, 0.5f), completed ? new Color(0.5f, 1f, 0.7f) : Ice);
 
             // Endless run: unlocked by the first delivery.
             bool endlessOpen = completed;
             float best = SaveSystem.Data.bestDistance;
-            Button endless = CreateButton(page.transform, "∞\nБЕСКОНЕЧНЫЙ ЗАБЕГ", new Vector2(0.14f, 0.2f), new Vector2(0.86f, 0.42f),
+            Button endless = CreatePlainButton(page.transform, "∞\nБЕСКОНЕЧНЫЙ ЗАБЕГ", new Vector2(0.14f, 0.2f), new Vector2(0.86f, 0.42f),
                 endlessOpen ? new Color(0.36f, 0.23f, 0.67f) : new Color(0.2f, 0.2f, 0.26f), 36);
             endless.interactable = endlessOpen;
             endless.onClick.AddListener(() => GameSession.StartRun(RunMode.Endless));
             string endlessNote = !endlessOpen ? "Откроется после уровня 1" : best > 0f ? $"Рекорд: {best:0} м" : "Беги, сколько сможешь";
-            CreateText(page.transform, endlessNote, 28, FontStyle.Bold, TextAnchor.MiddleCenter,
+            CreatePlainText(page.transform, endlessNote, 28, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.14f, 0.15f), new Vector2(0.86f, 0.2f), endlessOpen ? Gold : new Color(0.7f, 0.7f, 0.75f));
 
-            Button back = CreateButton(page.transform, "‹  НАЗАД", new Vector2(0.08f, 0.04f), new Vector2(0.42f, 0.11f), Slate, 28);
+            Button back = CreatePlainButton(page.transform, "‹  НАЗАД", new Vector2(0.08f, 0.04f), new Vector2(0.42f, 0.11f), Slate, 28);
             back.onClick.AddListener(ShowMainMenu);
         }
 
@@ -220,7 +211,7 @@ namespace CourierRunner
             state = ScreenState.Menu;
             ClearPage();
             screenBackground.gameObject.SetActive(true);
-            page = CreatePage("Upgrades", Navy);
+            page = CreatePage("Upgrades", Navy, true);
             CreateBalancePlate(page.transform);
             GameWorld world = GameWorld.Current;
             Texture icon = null;
@@ -239,22 +230,22 @@ namespace CourierRunner
             ClearPage();
             screenBackground.gameObject.SetActive(true);
             page = CreatePage("Controls", Navy);
-            CreateText(page.transform, "НАСТРОЙКИ", 58, FontStyle.Bold, TextAnchor.MiddleCenter,
+            CreatePlainText(page.transform, "НАСТРОЙКИ", 58, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.08f, 0.82f), new Vector2(0.92f, 0.93f), Color.white);
-            CreateText(page.transform, "УПРАВЛЕНИЕ", 31, FontStyle.Bold, TextAnchor.MiddleCenter,
+            CreatePlainText(page.transform, "УПРАВЛЕНИЕ", 31, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.15f, 0.73f), new Vector2(0.85f, 0.79f), Ice);
 
             CreateControlRow(page.transform, "A   или   ←", "Левая полоса", 0.64f);
             CreateControlRow(page.transform, "D   или   →", "Правая полоса", 0.49f);
             CreateControlRow(page.transform, "W   или   ↑", "Прыжок", 0.34f);
-            CreateText(page.transform, "НА ТЕЛЕФОНЕ", 27, FontStyle.Bold, TextAnchor.MiddleCenter,
+            CreatePlainText(page.transform, "НА ТЕЛЕФОНЕ", 27, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.15f, 0.22f), new Vector2(0.85f, 0.27f), Ice);
-            CreateText(page.transform, "Свайп влево / вправо — смена полосы\nСвайп вверх — прыжок", 25, FontStyle.Normal, TextAnchor.MiddleCenter,
+            CreatePlainText(page.transform, "Свайп влево / вправо — смена полосы\nСвайп вверх — прыжок", 25, FontStyle.Normal, TextAnchor.MiddleCenter,
                 new Vector2(0.10f, 0.13f), new Vector2(0.90f, 0.22f), Color.white);
 
-            Button back = CreateButton(page.transform, "‹  НАЗАД", new Vector2(0.08f, 0.045f), new Vector2(0.42f, 0.105f), Slate, 27);
+            Button back = CreatePlainButton(page.transform, "‹  НАЗАД", new Vector2(0.08f, 0.045f), new Vector2(0.42f, 0.105f), Slate, 27);
             back.onClick.AddListener(ShowMainMenu);
-            Button reset = CreateButton(page.transform, "СБРОСИТЬ ПРОГРЕСС", new Vector2(0.5f, 0.045f), new Vector2(0.92f, 0.105f),
+            Button reset = CreatePlainButton(page.transform, "СБРОСИТЬ ПРОГРЕСС", new Vector2(0.5f, 0.045f), new Vector2(0.92f, 0.105f),
                 new Color(0.55f, 0.16f, 0.16f), 24);
             bool armed = false;
             reset.onClick.AddListener(() =>
@@ -274,8 +265,8 @@ namespace CourierRunner
         {
             Image keyPlate = CreateImage(keys + " Keys", parent, new Color(0.12f, 0.16f, 0.25f));
             SetAnchors(keyPlate.rectTransform, new Vector2(0.12f, bottom), new Vector2(0.48f, bottom + 0.105f));
-            CreateText(keyPlate.transform, keys, 31, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f), Color.white);
-            CreateText(parent, action, 29, FontStyle.Bold, TextAnchor.MiddleLeft,
+            CreatePlainText(keyPlate.transform, keys, 31, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f), Color.white);
+            CreatePlainText(parent, action, 29, FontStyle.Bold, TextAnchor.MiddleLeft,
                 new Vector2(0.54f, bottom), new Vector2(0.91f, bottom + 0.105f), new Color(0.75f, 0.88f, 1f));
         }
 
@@ -456,15 +447,12 @@ namespace CourierRunner
             map.onClick.AddListener(endless ? ShowMainMenu : ShowMap);
         }
 
-        /// <summary>
-        /// A full-screen page. Menu pages (navy) show the main menu art darkened behind their content,
-        /// so every screen shares the same look.
-        /// </summary>
-        private GameObject CreatePage(string name, Color color)
+        /// <summary>A full-screen page; with <paramref name="menuArt"/> the main menu art shows darkened behind it.</summary>
+        private GameObject CreatePage(string name, Color color, bool menuArt = false)
         {
             Image image = CreateImage(name, phone, color);
             Stretch(image.rectTransform);
-            if (color == Navy)
+            if (menuArt)
             {
                 image.color = Color.black;
                 Image art = CreateTextureImage("Page Art", image.transform, "UI/MainMenuBackground");
