@@ -12,7 +12,7 @@ namespace CourierRunner
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void ForceInitializeEditableScene()
         {
-            EditableLevelRuntime runtime = FindFirstObjectByType<EditableLevelRuntime>(FindObjectsInactive.Include);
+            EditableLevelRuntime runtime = FindAnyObjectByType<EditableLevelRuntime>(FindObjectsInactive.Include);
             if (runtime == null)
             {
                 foreach (GameObject root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
@@ -30,7 +30,7 @@ namespace CourierRunner
         public void InitializeNow()
         {
             if (initialized) return;
-            RunnerController runner = FindFirstObjectByType<RunnerController>();
+            RunnerController runner = FindAnyObjectByType<RunnerController>();
             if (runner == null)
             {
                 GameObject courier = FindNamed("Courier");
@@ -38,10 +38,6 @@ namespace CourierRunner
                 RefreshCourierVisual(courier);
                 runner = courier.GetComponent<RunnerController>() ?? courier.AddComponent<RunnerController>();
             }
-            // Keep gameplay tuning stable even when an older scene/template serialized
-            // a previous public-field value on RunnerController.
-            runner.jumpHeight = 2.15f;
-
             Camera camera = Camera.main;
             if (camera != null)
             {

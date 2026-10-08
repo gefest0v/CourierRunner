@@ -25,7 +25,7 @@ namespace CourierRunner
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (!scene.name.Contains("CourierLevel")) return;
-            if (FindFirstObjectByType<CourierDistanceFog>() != null) return;
+            if (FindAnyObjectByType<CourierDistanceFog>() != null) return;
             new GameObject("Courier Distance Fog").AddComponent<CourierDistanceFog>();
         }
 
