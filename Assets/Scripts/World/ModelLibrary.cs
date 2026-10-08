@@ -10,13 +10,13 @@ namespace CourierRunner
         public const string TreeOak = "Tree Oak";
         public const string TreePine = "Tree Pine";
         public const string TreeStump = "Tree Stump";
-        public const string DecorRock = "Decor Rock";
+        public static readonly string[] DecorRocks = { "Decor Rock 1", "Decor Rock 2", "Decor Rock 3" };
         public const string Well = "Well";
-        public const string Fence = "Fence";
         public const string ForestCard = "Forest Card";
         public const string Coin = "Gold";
-        public const string Wall = "Wood Wall - Jump";
-        public const string Rock = "Rock - Jump";
+        /// <summary>Low jumpable obstacles made of wood: a fallen log and a broad stump.</summary>
+        public static readonly string[] Walls = { "Fallen Log - Jump", "Stump - Jump" };
+        public static readonly string[] Rocks = { "Rock - Jump 1", "Rock - Jump 2" };
         public const string Tower = "Lane Tower";
         public const string Fireball = "Tower Fireball";
         public const string Treant = "Treant";
@@ -31,6 +31,8 @@ namespace CourierRunner
     public sealed class ModelLibrary
     {
         public const int ForestCardVariants = 6;
+        public static readonly string[] ForestWallMaterials = { "ForestSideDeep", "ForestSideMixed", "ForestSidePine" };
+        public static int ForestWallVariants => ForestWallMaterials.Length;
 
         private readonly Transform templateRoot;
         private readonly Transform storage;
@@ -49,25 +51,39 @@ namespace CourierRunner
             Material pine = TextureMaterial("Trees/Textures/tree_pine_frond_00_color_psd_cad45fc8", true, 0.12f);
             Material stump = TextureMaterial("Trees/Textures/tree_stump001_color_psd_69850232", true, 0.12f);
             Material well = TextureMaterial("Decorations/well_color", false, 0.18f);
-            Material wall = TextureMaterial("Walls/wall_color", false, 0.14f);
             Material tower = TextureMaterial("Tower/tower_color", false, 0.2f);
 
             RegisterModel(PoolKeys.TreeOak, "Trees/TreeOak", 5.5f, 0f, oak, false, new Color(0.2f, 0.45f, 0.15f));
             RegisterModel(PoolKeys.TreePine, "Trees/TreePine", 6.2f, 0f, pine, false, new Color(0.12f, 0.35f, 0.18f));
             RegisterModel(PoolKeys.TreeStump, "Trees/TreeStump", 1.25f, 0f, stump, false, new Color(0.4f, 0.28f, 0.16f));
-            RegisterModel(PoolKeys.DecorRock, "Environment/RockSingle", 1f, 0f, null, false, new Color(0.45f, 0.45f, 0.48f));
+            Material rock = TextureMaterial("Decorations/rock_color", false, 0.16f);
+            RegisterModel(PoolKeys.DecorRocks[0], "Decorations/Rock1", 1f, 0f, rock, false, new Color(0.45f, 0.45f, 0.48f));
+            RegisterModel(PoolKeys.DecorRocks[1], "Decorations/Rock2", 1f, 0f, rock, false, new Color(0.45f, 0.45f, 0.48f));
+            // RockSingle comes from a glTF (Y-up), so it needs no FBX axis correction.
+            RegisterModel(PoolKeys.DecorRocks[2], "Environment/RockSingle", 1f, 0f, null, false, new Color(0.45f, 0.45f, 0.48f),
+                yUp: true);
             RegisterModel(PoolKeys.Well, "Decorations/Well", 2.2f, 0f, well, false, new Color(0.5f, 0.42f, 0.3f));
-            RegisterModel(PoolKeys.Fence, "Walls/Wall1", 1.2f, 0f, wall, false, new Color(0.45f, 0.3f, 0.18f));
             for (int i = 0; i < ForestCardVariants; i++)
             {
                 int variant = i;
                 Register(ForestCardKey(variant), () => CreateForestCard(variant));
             }
+            for (int i = 0; i < ForestWallVariants; i++)
+            {
+                int variant = i;
+                Register(ForestWallKey(variant), () => CreateForestWall(variant));
+            }
 
-            RegisterModel(PoolKeys.Wall, "Walls/Wall2", 1.9f, 2.75f, wall, true, new Color(0.5f, 0.32f, 0.18f));
-            RegisterModel(PoolKeys.Rock, "Environment/RockSingle", 1.15f, 2.1f, null, true, new Color(0.45f, 0.45f, 0.48f));
+            Register(PoolKeys.Walls[0], CreateFallenLog(stump));
+            RegisterModel(PoolKeys.Walls[1], "Trees/TreeStump", 1.3f, 2.2f, stump, true, new Color(0.4f, 0.28f, 0.16f));
+            RegisterModel(PoolKeys.Rocks[0], "Decorations/Rock1", 1.25f, 2.3f, rock, true, new Color(0.45f, 0.45f, 0.48f));
+            RegisterModel(PoolKeys.Rocks[1], "Decorations/Rock2", 1.25f, 2.3f, rock, true, new Color(0.45f, 0.45f, 0.48f));
             RegisterModel(PoolKeys.Tower, "Tower/Tower", 3.4f, 2.5f, tower, true, new Color(0.35f, 0.18f, 0.22f),
-                template => template.AddComponent<TowerShooter>());
+                template =>
+                {
+                    TowerShooter.Decorate(template);
+                    template.AddComponent<TowerShooter>();
+                });
             Register(PoolKeys.Coin, CreateCoinTemplate());
             Register(PoolKeys.Fireball, TowerProjectile.CreateTemplate());
             Register(PoolKeys.Treant, CreateTreantTemplate());
@@ -80,6 +96,7 @@ namespace CourierRunner
         }
 
         public static string ForestCardKey(int variant) => PoolKeys.ForestCard + " " + variant;
+        public static string ForestWallKey(int variant) => "Forest Wall " + variant;
 
         public ObjectPool Pool(string key) => pools[key];
 
@@ -99,9 +116,9 @@ namespace CourierRunner
         private void Register(string key, Func<GameObject> buildTemplate) => Register(key, buildTemplate());
 
         private void RegisterModel(string key, string resourcePath, float height, float minimumWidth, Material material,
-            bool obstacle, Color fallbackColor, Action<GameObject> configure = null)
+            bool obstacle, Color fallbackColor, Action<GameObject> configure = null, bool yUp = false)
         {
-            GameObject template = BuildNormalizedModel(key, resourcePath, height, minimumWidth, material, fallbackColor);
+            GameObject template = BuildNormalizedModel(key, resourcePath, height, minimumWidth, material, fallbackColor, yUp);
             if (obstacle) AddHitbox(template);
             configure?.Invoke(template);
             Register(key, template);
@@ -109,7 +126,7 @@ namespace CourierRunner
 
         /// <summary>Wraps a model so its root sits on the ground at the bottom center with the given height.</summary>
         private GameObject BuildNormalizedModel(string key, string resourcePath, float height, float minimumWidth,
-            Material material, Color fallbackColor)
+            Material material, Color fallbackColor, bool yUp = false)
         {
             var root = new GameObject(key);
             root.transform.SetParent(templateRoot, false);
@@ -118,7 +135,8 @@ namespace CourierRunner
             if (prefab != null)
             {
                 model = UnityEngine.Object.Instantiate(prefab, root.transform);
-                model.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+                // FBX exports here are Z-up; glTF imports are already Y-up.
+                model.transform.localRotation = yUp ? Quaternion.identity : Quaternion.Euler(-90f, 0f, 0f);
             }
             else
             {
@@ -193,26 +211,97 @@ namespace CourierRunner
             return pivot;
         }
 
+        /// <summary>
+        /// A wide painted strip of forest (ForestSide images) standing behind the side trees and facing
+        /// the road, so the forest reads as dense and continuous.
+        /// </summary>
+        private GameObject CreateForestWall(int variant)
+        {
+            var root = new GameObject(ForestWallKey(variant));
+            root.transform.SetParent(templateRoot, false);
+            Material material = Resources.Load<Material>("Environment/" + ForestWallMaterials[variant]);
+            Texture texture = material != null ? material.GetTexture("_BaseMap") : null;
+            float aspect = texture != null ? (float)texture.height / texture.width : 0.42f;
+
+            GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "Image";
+            UnityEngine.Object.DestroyImmediate(quad.GetComponent<Collider>());
+            quad.transform.SetParent(root.transform, false);
+            const float width = 30f;
+            quad.transform.localScale = new Vector3(width, width * aspect, 1f);
+            // Slightly sunk so the painted undergrowth meets the grass.
+            quad.transform.localPosition = new Vector3(0f, width * aspect * 0.5f - 0.6f, 0f);
+            Renderer renderer = quad.GetComponent<Renderer>();
+            renderer.sharedMaterial = material != null ? material : ColorMaterial(new Color(0.12f, 0.28f, 0.14f));
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return root;
+        }
+
+        /// <summary>A tree trunk lying across the lane, about knee-to-hip high, with sawn ends and branch stubs.</summary>
+        private GameObject CreateFallenLog(Material bark)
+        {
+            var root = new GameObject("Fallen Log");
+            root.transform.SetParent(templateRoot, false);
+            Material cut = ColorMaterial(new Color(0.78f, 0.62f, 0.4f));
+            Material barkTiled = new Material(bark) { name = "Log Bark" };
+            barkTiled.SetTextureScale("_BaseMap", new Vector2(3f, 1f));
+            const float radius = 0.5f, length = 2.7f;
+            // Trunk: a cylinder rotated to lie along X.
+            AddPart(root.transform, PrimitiveType.Cylinder, new Vector3(0f, radius, 0f), new Vector3(radius * 2f, length * 0.5f, radius * 2f),
+                new Vector3(0f, 0f, 90f), barkTiled);
+            AddPart(root.transform, PrimitiveType.Cylinder, new Vector3(-length * 0.5f, radius, 0f), new Vector3(radius * 1.9f, 0.02f, radius * 1.9f),
+                new Vector3(0f, 0f, 90f), cut);
+            AddPart(root.transform, PrimitiveType.Cylinder, new Vector3(length * 0.5f, radius, 0f), new Vector3(radius * 1.9f, 0.02f, radius * 1.9f),
+                new Vector3(0f, 0f, 90f), cut);
+            AddPart(root.transform, PrimitiveType.Cylinder, new Vector3(-0.5f, radius * 1.8f, 0.05f), new Vector3(0.18f, 0.35f, 0.18f),
+                new Vector3(20f, 0f, -25f), barkTiled);
+            AddPart(root.transform, PrimitiveType.Cylinder, new Vector3(0.7f, radius * 1.6f, -0.1f), new Vector3(0.14f, 0.28f, 0.14f),
+                new Vector3(-30f, 0f, 35f), barkTiled);
+            AddHitbox(root);
+            return root;
+        }
+
         private GameObject CreateCoinTemplate()
         {
             var root = new GameObject(PoolKeys.Coin);
             root.transform.SetParent(templateRoot, false);
-            GameObject coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            coin.name = "Coin";
+            // Faces point along ±Y in the mesh; tip the coin upright so it spins like a wheel.
+            var coin = new GameObject("Coin");
             coin.transform.SetParent(root.transform, false);
-            coin.transform.localScale = new Vector3(0.6f, 0.12f, 0.6f);
             coin.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            Material gold = ColorMaterial(new Color(1f, 0.75f, 0.05f));
-            gold.SetFloat("_Smoothness", 0.75f);
-            gold.SetFloat("_Metallic", 0.6f);
-            coin.GetComponent<Renderer>().sharedMaterial = gold;
-            coin.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
-            UnityEngine.Object.DestroyImmediate(coin.GetComponent<Collider>());
+            coin.transform.localScale = Vector3.one * 1.25f;
+            Material gold = CoinMaterial(new Color(1f, 0.76f, 0.18f), new Color(0.35f, 0.2f, 0.02f));
+            Material emblem = CoinMaterial(new Color(1f, 0.88f, 0.45f), new Color(0.55f, 0.36f, 0.05f));
+            AddMesh(coin.transform, "Body", CoinMesh.Body, gold);
+            AddMesh(coin.transform, "Star", CoinMesh.Star, emblem);
             SphereCollider trigger = root.AddComponent<SphereCollider>();
             trigger.isTrigger = true;
             trigger.radius = 0.45f;
             root.AddComponent<CoinPickup>();
             return root;
+        }
+
+        /// <summary>Polished gold: metallic, glossy and faintly self-lit so coins read through the fog.</summary>
+        private static Material CoinMaterial(Color baseColor, Color emission)
+        {
+            var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.SetColor("_BaseColor", baseColor);
+            material.SetFloat("_Metallic", 0.85f);
+            material.SetFloat("_Smoothness", 0.78f);
+            material.SetColor("_EmissionColor", emission);
+            material.EnableKeyword("_EMISSION");
+            return material;
+        }
+
+        private static void AddMesh(Transform parent, string name, Mesh mesh, Material material)
+        {
+            var part = new GameObject(name);
+            part.transform.SetParent(parent, false);
+            part.AddComponent<MeshFilter>().sharedMesh = mesh;
+            MeshRenderer renderer = part.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
         }
 
         /// <summary>
@@ -294,17 +383,35 @@ namespace CourierRunner
         {
             var pivot = new GameObject(side < 0f ? "Left Wing" : "Right Wing").transform;
             pivot.SetParent(root, false);
-            for (int i = 0; i < 4; i++)
-            {
-                float spread = 0.45f + i * 0.32f;
-                float lift = 0.3f - i * 0.13f;
-                AddPart(pivot, PrimitiveType.Sphere, new Vector3(side * spread, lift, 0f),
-                    new Vector3(0.75f - i * 0.08f, 0.28f, 0.08f), new Vector3(0f, 0f, side * (18f - i * 12f)),
-                    i == 3 ? tip : feather);
-            }
+            // Three layers fanned out from the shoulder like a bird's wing: long primaries at the outer
+            // edge, shorter secondaries closer to the body and small coverts along the top.
+            AddFeatherRow(pivot, side, 7, new Vector2(0.35f, 0.42f), new Vector2(1.05f, 0.18f), 1.15f, 0.7f, 15f, -60f, 0.16f, tip, 0.02f);
+            AddFeatherRow(pivot, side, 6, new Vector2(0.18f, 0.36f), new Vector2(0.75f, 0.26f), 0.75f, 0.5f, -10f, -75f, 0.15f, feather, 0.05f);
+            AddFeatherRow(pivot, side, 5, new Vector2(0.12f, 0.46f), new Vector2(0.95f, 0.38f), 0.42f, 0.32f, 8f, -25f, 0.14f, feather, 0.08f);
             foreach (Renderer renderer in pivot.GetComponentsInChildren<Renderer>())
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
             return pivot;
+        }
+
+        /// <summary>
+        /// One row of feathers: each is a long flattened ellipsoid anchored at a point on the line from
+        /// <paramref name="start"/> to <paramref name="end"/>, pointing outward at an angle that fans from
+        /// <paramref name="angleFrom"/> to <paramref name="angleTo"/> degrees.
+        /// </summary>
+        private static void AddFeatherRow(Transform pivot, float side, int count, Vector2 start, Vector2 end,
+            float lengthFrom, float lengthTo, float angleFrom, float angleTo, float width, Material material, float depth)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float t = count == 1 ? 0f : i / (count - 1f);
+                Vector2 anchor = Vector2.Lerp(start, end, t);
+                float length = Mathf.Lerp(lengthFrom, lengthTo, t);
+                float angle = Mathf.Lerp(angleFrom, angleTo, t);
+                Vector2 direction = new(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+                Vector2 center = anchor + direction * (length * 0.5f);
+                AddPart(pivot, PrimitiveType.Sphere, new Vector3(side * center.x, center.y, depth),
+                    new Vector3(length, width, 0.05f), new Vector3(0f, 0f, side * angle), material);
+            }
         }
 
         private GameObject CreateWingsPickupTemplate()
@@ -450,6 +557,7 @@ namespace CourierRunner
             animator.runtimeAnimatorController = Resources.Load<RuntimeAnimatorController>("Heroes/CrystalMaidenIdle");
             animator.applyRootMotion = false;
             root.AddComponent<RecipientAnimationLoop>().animator = animator;
+            maiden.AddComponent<CrystalMaidenPose>();
             return root;
         }
 

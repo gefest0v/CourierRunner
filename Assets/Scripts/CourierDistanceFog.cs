@@ -26,8 +26,8 @@ namespace CourierRunner
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = new Color(0.55f, 0.65f, 0.69f, 1f);
-            RenderSettings.fogStartDistance = 32f;
-            RenderSettings.fogEndDistance = 105f;
+            RenderSettings.fogStartDistance = 38f;
+            RenderSettings.fogEndDistance = 118f;
         }
 
         private void OnDestroy()

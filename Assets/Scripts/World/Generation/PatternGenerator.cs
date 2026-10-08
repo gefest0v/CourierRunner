@@ -233,7 +233,7 @@ namespace CourierRunner
             bool arcHasObstacle = false;
             for (int lane = 0; lane < 3; lane++)
             {
-                string key = suppress ? null : KeyFor(row.Cells[lane], profile);
+                string key = suppress ? null : KeyFor(row.Cells[lane], profile, context.Random);
                 if (key == null) continue;
                 context.Library.Get(key, segment.Gameplay, segment.LanePoint(lane - 1, localZ));
                 if (lane == row.CoinLane) arcHasObstacle = true;
@@ -259,11 +259,12 @@ namespace CourierRunner
         /// Turns a planned cell into a pool key, respecting what the segment theme allows. Removing or
         /// softening an obstacle never breaks the path the validator found.
         /// </summary>
-        private string KeyFor(PatternCell cell, ThemeProfile profile)
+        private static string KeyFor(PatternCell cell, ThemeProfile profile, System.Random random)
         {
             if (cell == PatternCell.Empty || !profile.allowsObstacles) return null;
-            if (cell == PatternCell.Tower) return profile.allowsTowers ? PoolKeys.Tower : PoolKeys.Wall;
-            return cell == PatternCell.Rock ? PoolKeys.Rock : PoolKeys.Wall;
+            if (cell == PatternCell.Tower && profile.allowsTowers) return PoolKeys.Tower;
+            string[] variants = cell == PatternCell.Rock ? PoolKeys.Rocks : PoolKeys.Walls;
+            return variants[random.Next(variants.Length)];
         }
     }
 }

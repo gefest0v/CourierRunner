@@ -20,6 +20,7 @@ namespace CourierRunner
         private GameObject gameplayHud;
         private Text coinText;
         private Text debugText;
+        private static bool showDebug;
         private Text alertText;
         private GameObject flightBar;
         private Text distanceText;
@@ -46,8 +47,13 @@ namespace CourierRunner
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame))
                 SetPaused(pauseOverlay == null);
+            if (keyboard != null && keyboard.f3Key.wasPressedThisFrame && debugText != null)
+            {
+                showDebug = !showDebug;
+                debugText.gameObject.SetActive(showDebug);
+            }
             UpdateDistance();
-            coinText.text = $"ЗОЛОТО  {runner.Coins}";
+            coinText.text = runner.Coins.ToString();
             UpdateDebugText();
             UpdateAlert();
             UpdateFlightBar();
@@ -144,24 +150,17 @@ namespace CourierRunner
 
             CreateBalancePlate(page.transform);
             if (SaveSystem.Data.wingsPurchased)
-                CreateText(page.transform, "Транспорт: крылья ✓", 24, FontStyle.Bold, TextAnchor.MiddleRight,
-                    new Vector2(0.4f, 0.92f), new Vector2(0.97f, 0.952f), new Color(0.7f, 0.9f, 1f));
+            {
+                Image transport = CreatePanel("Transport Plate", page.transform, new Vector2(0.5f, 0.895f), new Vector2(0.97f, 0.945f), 26f);
+                CreateText(transport.transform, "Транспорт: крылья ✓", 24, FontStyle.Bold, TextAnchor.MiddleCenter,
+                    new Vector2(0.08f, 0.1f), new Vector2(0.92f, 0.9f), new Color(0.75f, 0.92f, 1f));
+            }
 
-            bool endlessOpen = SaveSystem.IsLevelCompleted(LevelIds.CrystalMaiden);
-            string endlessLabel = endlessOpen
-                ? (SaveSystem.Data.bestDistance > 0f ? $"∞  БЕСКОНЕЧНЫЙ  •  рекорд {SaveSystem.Data.bestDistance:0} м" : "∞  БЕСКОНЕЧНЫЙ ЗАБЕГ")
-                : "∞  БЕСКОНЕЧНЫЙ — пройдите уровень 1";
-            Button endlessButton = CreateButton(page.transform, endlessLabel, new Vector2(0.045f, 0.25f), new Vector2(0.955f, 0.315f),
-                endlessOpen ? new Color(0.36f, 0.23f, 0.67f, 0.95f) : new Color(0.2f, 0.2f, 0.26f, 0.9f), 30);
-            endlessButton.interactable = endlessOpen;
-            endlessButton.onClick.AddListener(() => GameSession.StartRun(RunMode.Endless));
-
-            Button upgrades = CreateButton(page.transform, "УЛУЧШЕНИЯ", new Vector2(0.045f, 0.17f), new Vector2(0.955f, 0.235f),
-                new Color(0.18f, 0.24f, 0.42f, 0.95f), 32);
+            Button upgrades = CreateButton(page.transform, "УЛУЧШЕНИЯ", new Vector2(0.11f, 0.165f), new Vector2(0.89f, 0.245f),
+                new Color(0.55f, 0.8f, 1f), 34);
             upgrades.onClick.AddListener(ShowShop);
             if (SaveSystem.Data.wingsOffered && !SaveSystem.Data.wingsPurchased && SaveSystem.Coins >= GameConfig.Instance.wingsPrice)
-                CreateText(upgrades.transform, "●", 30, FontStyle.Bold, TextAnchor.MiddleRight,
-                    new Vector2(0.8f, 0f), new Vector2(0.97f, 1f), Gold);
+                CreateCoinIcon(upgrades.transform, new Vector2(0.78f, 0.25f), new Vector2(0.86f, 0.75f));
 
             Button play = CreateButton(page.transform, "▶   ИГРАТЬ", new Vector2(0.045f, 0.045f), new Vector2(0.72f, 0.155f), Ice, 42);
             ApplyButtonArt(play, "UI/PlayButton");
@@ -175,10 +174,10 @@ namespace CourierRunner
 
         private void CreateBalancePlate(Transform parent)
         {
-            Image plate = CreateImage("Balance Plate", parent, new Color(0.03f, 0.05f, 0.1f, 0.78f));
-            SetAnchors(plate.rectTransform, new Vector2(0.56f, 0.955f), new Vector2(0.97f, 0.99f));
-            CreateText(plate.transform, $"● {SaveSystem.Coins}", 30, FontStyle.Bold, TextAnchor.MiddleCenter,
-                Vector2.zero, Vector2.one, Gold);
+            Image plate = CreatePanel("Balance Plate", parent, new Vector2(0.6f, 0.945f), new Vector2(0.97f, 0.995f), 28f);
+            CreateCoinIcon(plate.transform, new Vector2(0.1f, 0.18f), new Vector2(0.32f, 0.82f));
+            CreateText(plate.transform, SaveSystem.Coins.ToString(), 34, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.3f, 0.1f), new Vector2(0.92f, 0.9f), Gold);
         }
 
         private void ShowMap()
@@ -188,20 +187,31 @@ namespace CourierRunner
             screenBackground.gameObject.SetActive(true);
             page = CreatePage("Level Map", Navy);
             CreateBalancePlate(page.transform);
-            CreateText(page.transform, "КАРТА ДОСТАВОК", 58, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.06f, 0.84f), new Vector2(0.94f, 0.94f), Color.white);
-            CreateText(page.transform, "Выбери героя, которому нужна доставка", 27, FontStyle.Normal, TextAnchor.MiddleCenter,
-                new Vector2(0.08f, 0.77f), new Vector2(0.92f, 0.84f), new Color(0.7f, 0.82f, 0.95f));
+            CreateText(page.transform, "КАРТА ДОСТАВОК", 64, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.06f, 0.84f), new Vector2(0.94f, 0.93f), Gold);
+            CreateText(page.transform, "Выбери героя, которому нужна доставка", 30, FontStyle.Normal, TextAnchor.MiddleCenter,
+                new Vector2(0.08f, 0.78f), new Vector2(0.92f, 0.84f), Parchment);
 
             bool completed = SaveSystem.IsLevelCompleted(LevelIds.CrystalMaiden);
             string icon = completed ? "✓" : "❄";
             Color cardColor = completed ? new Color(0.18f, 0.62f, 0.42f) : Violet;
-            Button level = CreateButton(page.transform, icon + "\nCRYSTAL MAIDEN\nУровень 1", new Vector2(0.18f, 0.42f), new Vector2(0.82f, 0.68f), cardColor, 36);
+            Button level = CreateButton(page.transform, icon + "\nCRYSTAL MAIDEN\nУровень 1", new Vector2(0.14f, 0.5f), new Vector2(0.86f, 0.72f), cardColor, 36);
             level.onClick.AddListener(() => GameSession.StartRun(RunMode.Story, LevelIds.CrystalMaiden));
             CreateText(page.transform, completed ? "Доставка выполнена" : "Доступно", 28, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.2f, 0.35f), new Vector2(0.8f, 0.41f), completed ? new Color(0.5f, 1f, 0.7f) : Ice);
+                new Vector2(0.14f, 0.45f), new Vector2(0.86f, 0.5f), completed ? new Color(0.5f, 1f, 0.7f) : Ice);
 
-            Button back = CreateButton(page.transform, "‹  НАЗАД", new Vector2(0.08f, 0.07f), new Vector2(0.42f, 0.14f), Slate, 28);
+            // Endless run: unlocked by the first delivery.
+            bool endlessOpen = completed;
+            float best = SaveSystem.Data.bestDistance;
+            Button endless = CreateButton(page.transform, "∞\nБЕСКОНЕЧНЫЙ ЗАБЕГ", new Vector2(0.14f, 0.2f), new Vector2(0.86f, 0.42f),
+                endlessOpen ? new Color(0.36f, 0.23f, 0.67f) : new Color(0.2f, 0.2f, 0.26f), 36);
+            endless.interactable = endlessOpen;
+            endless.onClick.AddListener(() => GameSession.StartRun(RunMode.Endless));
+            string endlessNote = !endlessOpen ? "Откроется после уровня 1" : best > 0f ? $"Рекорд: {best:0} м" : "Беги, сколько сможешь";
+            CreateText(page.transform, endlessNote, 28, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.14f, 0.15f), new Vector2(0.86f, 0.2f), endlessOpen ? Gold : new Color(0.7f, 0.7f, 0.75f));
+
+            Button back = CreateButton(page.transform, "‹  НАЗАД", new Vector2(0.08f, 0.04f), new Vector2(0.42f, 0.11f), Slate, 28);
             back.onClick.AddListener(ShowMainMenu);
         }
 
@@ -278,40 +288,47 @@ namespace CourierRunner
             gameplayHud.transform.SetParent(phone, false);
             Stretch(gameplayHud.GetComponent<RectTransform>());
 
-            Image coinPlate = CreateImage("Coin Plate", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
-            SetAnchors(coinPlate.rectTransform, new Vector2(0.04f, 0.91f), new Vector2(0.40f, 0.97f));
-            coinText = CreateText(coinPlate.transform, "ЗОЛОТО  0", 28, FontStyle.Bold, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, Gold);
-            Image distancePlate = CreateImage("Distance Plate", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
-            SetAnchors(distancePlate.rectTransform, new Vector2(0.6f, 0.91f), new Vector2(0.96f, 0.97f));
-            distanceText = CreateText(distancePlate.transform, "0 м", 28, FontStyle.Bold, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, Color.white);
+            Image coinPlate = CreatePanel("Coin Plate", gameplayHud.transform, new Vector2(0.03f, 0.915f), new Vector2(0.4f, 0.975f), 30f);
+            CreateCoinIcon(coinPlate.transform, new Vector2(0.09f, 0.16f), new Vector2(0.3f, 0.84f));
+            coinText = CreateText(coinPlate.transform, "0", 38, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.3f, 0.12f), new Vector2(0.9f, 0.88f), Gold);
+            Image distancePlate = CreatePanel("Distance Plate", gameplayHud.transform, new Vector2(0.6f, 0.915f), new Vector2(0.97f, 0.975f), 30f);
+            distanceText = CreateText(distancePlate.transform, "0 м", 30, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.1f, 0.12f), new Vector2(0.9f, 0.88f), Parchment);
             if (GameSession.Mode == RunMode.Story)
             {
-                Image progressBack = CreateImage("Delivery Progress", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
-                SetAnchors(progressBack.rectTransform, new Vector2(0.6f, 0.895f), new Vector2(0.96f, 0.905f));
-                Image progress = CreateImage("Delivery Progress Fill", progressBack.transform, new Color(0.55f, 0.85f, 1f));
+                // A gold progress bar under the distance plate, filling toward the recipient.
+                Image progressBack = CreateImage("Delivery Progress", gameplayHud.transform, new Color(0.18f, 0.1f, 0.04f, 0.9f));
+                SetAnchors(progressBack.rectTransform, new Vector2(0.63f, 0.902f), new Vector2(0.94f, 0.912f));
+                progressBack.gameObject.AddComponent<Outline>().effectColor = new Color(0.1f, 0.05f, 0f, 0.9f);
+                Image progress = CreateImage("Delivery Progress Fill", progressBack.transform, Gold);
                 progressFill = progress.rectTransform;
                 SetAnchors(progressFill, Vector2.zero, new Vector2(0f, 1f));
             }
-            Button pause = CreateButton(gameplayHud.transform, "II", new Vector2(0.44f, 0.915f), new Vector2(0.56f, 0.965f),
-                new Color(0.03f, 0.05f, 0.1f, 0.72f), 28);
+            Button pause = CreateButton(gameplayHud.transform, string.Empty, new Vector2(0.435f, 0.912f), new Vector2(0.565f, 0.985f), Color.white, 28);
+            ApplyButtonArt(pause, "UI/PauseButton");
+            pause.GetComponent<Image>().preserveAspect = true;
             pause.onClick.AddListener(() => SetPaused(true));
 
-            Image barBack = CreateImage("Flight Bar", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
-            SetAnchors(barBack.rectTransform, new Vector2(0.04f, 0.875f), new Vector2(0.4f, 0.9f));
-            Image fill = CreateImage("Flight Fill", barBack.transform, new Color(0.45f, 0.82f, 1f, 1f));
+            Image barBack = CreatePanel("Flight Bar", gameplayHud.transform, new Vector2(0.03f, 0.865f), new Vector2(0.4f, 0.91f), 22f);
+            Image fill = CreateImage("Flight Fill", barBack.transform, new Color(0.5f, 0.85f, 1f, 0.9f));
             flightFill = fill.rectTransform;
-            SetAnchors(flightFill, Vector2.zero, Vector2.one);
-            CreateText(barBack.transform, "КРЫЛЬЯ", 18, FontStyle.Bold, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one,
-                new Color(0.05f, 0.1f, 0.2f));
+            SetAnchors(flightFill, new Vector2(0.06f, 0.25f), new Vector2(0.94f, 0.75f));
+            CreateText(barBack.transform, "КРЫЛЬЯ", 22, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.06f, 0.15f), new Vector2(0.94f, 0.85f),
+                Parchment);
             flightBar = barBack.gameObject;
             flightBar.SetActive(false);
 
             alertText = CreateText(gameplayHud.transform, string.Empty, 64, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.05f, 0.62f), new Vector2(0.95f, 0.74f), new Color(1f, 0.55f, 0.25f, 0f));
             alertText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+            // Tester overlay: dev builds only and hidden until F3 is pressed.
             if (Debug.isDebugBuild)
+            {
                 debugText = CreateText(gameplayHud.transform, string.Empty, 20, FontStyle.Normal, TextAnchor.UpperLeft,
-                    new Vector2(0.04f, 0.80f), new Vector2(0.96f, 0.90f), new Color(1f, 1f, 1f, 0.75f));
+                    new Vector2(0.04f, 0.79f), new Vector2(0.96f, 0.86f), new Color(1f, 1f, 1f, 0.8f));
+                debugText.gameObject.SetActive(showDebug);
+            }
 
             runner.BeginRun();
         }
@@ -439,10 +456,26 @@ namespace CourierRunner
             map.onClick.AddListener(endless ? ShowMainMenu : ShowMap);
         }
 
+        /// <summary>
+        /// A full-screen page. Menu pages (navy) show the main menu art darkened behind their content,
+        /// so every screen shares the same look.
+        /// </summary>
         private GameObject CreatePage(string name, Color color)
         {
             Image image = CreateImage(name, phone, color);
             Stretch(image.rectTransform);
+            if (color == Navy)
+            {
+                image.color = Color.black;
+                Image art = CreateTextureImage("Page Art", image.transform, "UI/MainMenuBackground");
+                if (art != null)
+                {
+                    Stretch(art.rectTransform);
+                    art.color = new Color(0.42f, 0.42f, 0.48f, 1f);
+                }
+                Image shade = CreateImage("Page Shade", image.transform, new Color(0.03f, 0.03f, 0.08f, 0.45f));
+                Stretch(shade.rectTransform);
+            }
             return image.gameObject;
         }
 

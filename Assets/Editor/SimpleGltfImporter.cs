@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 namespace CourierRunner.Editor
 {
     // Small importer for the static, single-mesh Source 2 exports used by this prototype.
-    [ScriptedImporter(3, "gltf")]
+    [ScriptedImporter(4, "gltf")]
     public sealed class SimpleGltfImporter : ScriptedImporter
     {
         [Serializable] private sealed class Root { public Accessor[] accessors; public BufferView[] bufferViews; public Buffer[] buffers; public ImageInfo[] images; public MaterialInfo[] materials; public MeshInfo[] meshes; }
@@ -59,10 +59,26 @@ namespace CourierRunner.Editor
             context.SetMainObject(model);
         }
 
+        /// <summary>
+        /// Shader.Find can return null while assets are being imported (the URP shaders may not be
+        /// loaded yet), so fall back to loading the shader asset from the URP package directly.
+        /// </summary>
+        private static Shader LitShader(AssetImportContext context)
+        {
+            const string litPath = "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader";
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+            {
+                context.DependsOnSourceAsset(litPath);
+                shader = AssetDatabase.LoadAssetAtPath<Shader>(litPath);
+            }
+            return shader != null ? shader : Shader.Find("Hidden/InternalErrorShader");
+        }
+
         private static Material BuildMaterial(Root root, int index, string directory, AssetImportContext context)
         {
             MaterialInfo info = root.materials[index];
-            Material material = new(Shader.Find("Universal Render Pipeline/Lit")) { name = info.name };
+            Material material = new(LitShader(context)) { name = info.name };
             if (info.pbrMetallicRoughness?.baseColorTexture != null)
             {
                 int textureIndex = info.pbrMetallicRoughness.baseColorTexture.index;

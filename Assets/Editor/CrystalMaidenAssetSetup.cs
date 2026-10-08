@@ -39,6 +39,13 @@ namespace CourierRunner.Editor
                 return;
             }
 
+            // Rebuilding the controller on every editor start leaves the asset modified in git; skip if it is already right.
+            AnimatorController existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            if (existing != null && existing.layers.Length > 0 &&
+                existing.layers[0].stateMachine.defaultState != null &&
+                existing.layers[0].stateMachine.defaultState.motion == idle)
+                return;
+
             AssetDatabase.DeleteAsset(ControllerPath);
             AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             AnimatorState state = controller.layers[0].stateMachine.AddState("Wait");

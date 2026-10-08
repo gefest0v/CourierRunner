@@ -48,6 +48,8 @@ namespace CourierRunner
             if (model == null) return null;
             // Face the camera, which looks along +Z from in front of the model.
             if (character.model == "courier") model.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            // Wings read best from a three-quarter view, slightly from above.
+            if (character.model == "wings") model.transform.localRotation = Quaternion.Euler(-12f, 28f, 0f);
             SetLayer(model.transform, Layer);
 
             Renderer[] renderers = model.GetComponentsInChildren<Renderer>();
@@ -73,7 +75,7 @@ namespace CourierRunner
             bool wholeObject = character.model == "wings";
             float height = wholeObject ? Mathf.Max(bounds.size.y, bounds.size.x * 0.75f) : bounds.size.y;
             Vector3 focus = wholeObject ? bounds.center : new Vector3(bounds.center.x, bounds.min.y + height * 0.72f, bounds.center.z);
-            float distance = height * (wholeObject ? 0.62f : 0.45f) / Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
+            float distance = height * (wholeObject ? 0.95f : 0.45f) / Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
             cameraObject.transform.position = focus + new Vector3(0f, height * 0.04f, -distance);
             cameraObject.transform.LookAt(focus);
 

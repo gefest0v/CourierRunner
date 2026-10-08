@@ -63,20 +63,18 @@ namespace CourierRunner
             leftPortrait = CreatePortrait("Left Portrait", new Vector2(-0.08f, 0.26f), new Vector2(0.62f, 0.9f));
             rightPortrait = CreatePortrait("Right Portrait", new Vector2(0.38f, 0.26f), new Vector2(1.08f, 0.9f));
 
-            Image panel = CreateImage("Text Panel", transform, new Color(0.05f, 0.07f, 0.14f, 0.94f));
-            SetAnchors(panel.rectTransform, new Vector2(0.03f, 0.04f), new Vector2(0.97f, 0.29f));
-            panel.gameObject.AddComponent<Outline>().effectColor = new Color(0.55f, 0.75f, 1f, 0.35f);
+            Image panel = CreatePanel("Text Panel", transform, new Vector2(0.02f, 0.03f), new Vector2(0.98f, 0.3f), 70f);
             bodyText = CreateText(panel.transform, string.Empty, 36, FontStyle.Normal, TextAnchor.UpperLeft,
-                new Vector2(0.05f, 0.18f), new Vector2(0.95f, 0.88f), Color.white);
+                new Vector2(0.1f, 0.2f), new Vector2(0.9f, 0.84f), Parchment);
             bodyText.resizeTextForBestFit = false;
             bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
             bodyText.verticalOverflow = VerticalWrapMode.Overflow;
             continueMark = CreateText(panel.transform, "▼", 30, FontStyle.Bold, TextAnchor.MiddleRight,
-                new Vector2(0.8f, 0.02f), new Vector2(0.96f, 0.18f), Ice);
+                new Vector2(0.78f, 0.06f), new Vector2(0.9f, 0.22f), Gold);
 
-            namePlate = CreateImage("Name Plate", transform, new Color(0.1f, 0.13f, 0.24f, 0.97f));
+            namePlate = CreatePanel("Name Plate", transform, Vector2.zero, Vector2.one, 30f);
             nameText = CreateText(namePlate.transform, string.Empty, 32, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.06f, 0.08f), new Vector2(0.94f, 0.92f), Color.white);
+                new Vector2(0.1f, 0.12f), new Vector2(0.9f, 0.88f), Color.white);
 
             rewardBadge = CreateImage("Reward Badge", transform, new Color(0.95f, 0.72f, 0.12f, 0.96f)).gameObject;
             SetAnchors((RectTransform)rewardBadge.transform, new Vector2(0.1f, 0.9f), new Vector2(0.9f, 0.96f));
@@ -150,13 +148,13 @@ namespace CourierRunner
             lineComplete = false;
             bodyText.text = string.Empty;
             bodyText.fontStyle = system ? FontStyle.Italic : FontStyle.Normal;
-            bodyText.color = system ? Gold : Color.white;
+            bodyText.color = system ? Gold : Parchment;
 
             namePlate.gameObject.SetActive(!system && !string.IsNullOrEmpty(character.name));
             nameText.text = character.name;
             nameText.color = character.NameColor;
-            SetAnchors(namePlate.rectTransform, right ? new Vector2(0.55f, 0.29f) : new Vector2(0.05f, 0.29f),
-                right ? new Vector2(0.95f, 0.345f) : new Vector2(0.45f, 0.345f));
+            SetAnchors(namePlate.rectTransform, right ? new Vector2(0.52f, 0.285f) : new Vector2(0.04f, 0.285f),
+                right ? new Vector2(0.96f, 0.35f) : new Vector2(0.48f, 0.35f));
 
             if (!system)
             {

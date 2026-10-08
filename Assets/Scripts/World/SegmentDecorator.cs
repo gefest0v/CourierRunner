@@ -1,8 +1,12 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace CourierRunner
 {
-    /// <summary>Places the theme's trees, rocks and props along both sides of a segment.</summary>
+    /// <summary>
+    /// Fills both sides of a segment in depth layers: trees by the road, more trees behind them,
+    /// painted tree groups further out and a wide painted forest wall at the back, plus rocks and props.
+    /// </summary>
     public static class SegmentDecorator
     {
         /// <summary>Half-width of the road plus a margin; decoration never comes closer to the center.</summary>
@@ -15,40 +19,37 @@ namespace CourierRunner
 
             for (int side = -1; side <= 1; side += 2)
             {
-                PlaceStratified(profile.treesPerSide, length, random, z =>
-                {
-                    string key = random.NextDouble() < profile.pineShare ? PoolKeys.TreePine : PoolKeys.TreeOak;
-                    float x = side * Range(random, profile.treeMinX, profile.treeMaxX);
-                    GameObject tree = library.Get(key, segment.Decor, new Vector3(x, 0f, z), Range(random, 0f, 360f));
-                    tree.transform.localScale = Vector3.one * Range(random, 0.82f, 1.18f);
-                });
+                int s = side;
+                PlaceStratified(profile.nearTreesPerSide, length, random, z =>
+                    PlaceTree(segment, library, random, profile, s * Range(random, profile.nearTreeMinX, 11f), z));
+                PlaceStratified(profile.farTreesPerSide, length, random, z =>
+                    PlaceTree(segment, library, random, profile, s * Range(random, 11f, 20f), z));
 
                 PlaceStratified(profile.rocksPerSide, length, random, z =>
                 {
-                    float x = side * Range(random, RoadClearance + 0.8f, 14f);
-                    GameObject rock = library.Get(PoolKeys.DecorRock, segment.Decor, new Vector3(x, 0f, z), Range(random, 0f, 360f));
-                    rock.transform.localScale = Vector3.one * Range(random, 0.65f, 1.4f);
+                    float x = s * Range(random, RoadClearance + 0.6f, 15f);
+                    string key = PoolKeys.DecorRocks[random.Next(PoolKeys.DecorRocks.Length)];
+                    GameObject rock = library.Get(key, segment.Decor, new Vector3(x, 0f, z), Range(random, 0f, 360f));
+                    rock.transform.localScale = Vector3.one * Range(random, 0.6f, 1.6f);
                 });
 
                 PlaceStratified(profile.forestCardsPerSide, length, random, z =>
                 {
                     int variant = random.Next(ModelLibrary.ForestCardVariants);
-                    float x = side * Range(random, 22f, 27f);
+                    float x = s * Range(random, 10f, 30f);
                     GameObject card = library.Get(ModelLibrary.ForestCardKey(variant), segment.Decor, new Vector3(x, 0f, z));
-                    card.transform.localScale = Vector3.one * Range(random, 0.9f, 1.12f);
+                    // Further cards are larger so the forest keeps getting taller toward the back.
+                    float depth = Mathf.InverseLerp(10f, 30f, Mathf.Abs(x));
+                    card.transform.localScale = Vector3.one * Range(random, 0.9f, 1.25f) * Mathf.Lerp(1f, 1.5f, depth);
                 });
 
-                if (profile.fences)
+                PlaceStratified(profile.forestWallsPerSide, length, random, z =>
                 {
-                    // A run of low fence pieces lining the road edge.
-                    const float pieceLength = 3.2f;
-                    for (float z = 2f; z < length - 2f; z += pieceLength + Range(random, 0.2f, 1.4f))
-                    {
-                        GameObject fence = library.Get(PoolKeys.Fence, segment.Decor,
-                            new Vector3(side * (RoadClearance + 0.4f), 0f, z), 90f);
-                        fence.transform.localScale = new Vector3(1f, Range(random, 0.85f, 1.1f), 1f);
-                    }
-                }
+                    int variant = random.Next(ModelLibrary.ForestWallVariants);
+                    float x = s * Range(random, 23f, 27f);
+                    GameObject wall = library.Get(ModelLibrary.ForestWallKey(variant), segment.Decor, new Vector3(x, 0f, z));
+                    wall.transform.localScale = Vector3.one * Range(random, 0.9f, 1.15f);
+                });
             }
 
             for (int i = 0; i < profile.stumps; i++)
@@ -63,6 +64,21 @@ namespace CourierRunner
                 library.Get(PoolKeys.Well, segment.Decor, new Vector3(x, 0f, Range(random, 8f, length - 8f)), Range(random, 0f, 360f));
             }
         }
+
+        private static void PlaceTree(TrackSegment segment, ModelLibrary library, System.Random random, ThemeProfile profile, float x, float z)
+        {
+            string key = random.NextDouble() < profile.pineShare ? PoolKeys.TreePine : PoolKeys.TreeOak;
+            GameObject tree = library.Get(key, segment.Decor, new Vector3(x, 0f, z), Range(random, 0f, 360f));
+            // Trees further from the road grow a little taller.
+            float depth = Mathf.InverseLerp(7f, 20f, Mathf.Abs(x));
+            tree.transform.localScale = Vector3.one * Range(random, 0.85f, 1.2f) * Mathf.Lerp(1f, 1.35f, depth);
+            // Only trees near the road cast shadows; the rest would cost a lot in the browser for little gain.
+            ShadowCastingMode shadows = Mathf.Abs(x) < 11f ? ShadowCastingMode.On : ShadowCastingMode.Off;
+            tree.GetComponentsInChildren(Renderers);
+            foreach (Renderer renderer in Renderers) renderer.shadowCastingMode = shadows;
+        }
+
+        private static readonly System.Collections.Generic.List<Renderer> Renderers = new();
 
         /// <summary>Spreads <paramref name="count"/> items evenly along the segment with some jitter.</summary>
         private static void PlaceStratified(int count, float length, System.Random random, System.Action<float> place)

@@ -33,28 +33,26 @@ namespace CourierRunner
             GameConfig config = GameConfig.Instance;
             SaveData save = SaveSystem.Data;
 
-            CreateText(page, "УЛУЧШЕНИЯ", 58, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.06f, 0.86f), new Vector2(0.94f, 0.94f), Color.white);
+            CreateText(page, "УЛУЧШЕНИЯ", 64, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.06f, 0.85f), new Vector2(0.94f, 0.93f), Gold);
 
-            Image card = CreateImage("Wings Card", page, new Color(0.1f, 0.14f, 0.27f, 0.97f));
-            SetAnchors(card.rectTransform, new Vector2(0.06f, 0.43f), new Vector2(0.94f, 0.84f));
-            card.gameObject.AddComponent<Outline>().effectColor = new Color(0.45f, 0.75f, 1f, 0.45f);
+            Image card = CreatePanel("Wings Card", page, new Vector2(0.04f, 0.42f), new Vector2(0.96f, 0.85f), 80f);
 
             var icon = new GameObject("Wings Icon", typeof(RectTransform), typeof(RawImage));
             icon.transform.SetParent(card.transform, false);
-            SetAnchors(icon.GetComponent<RectTransform>(), new Vector2(0.18f, 0.45f), new Vector2(0.82f, 0.98f));
+            SetAnchors(icon.GetComponent<RectTransform>(), new Vector2(0.18f, 0.47f), new Vector2(0.82f, 0.93f));
             RawImage iconImage = icon.GetComponent<RawImage>();
             iconImage.texture = wingsIcon;
             iconImage.raycastTarget = false;
             iconImage.enabled = wingsIcon != null;
 
-            CreateText(card.transform, "КРЫЛЬЯ", 44, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.05f, 0.37f), new Vector2(0.95f, 0.47f), new Color(0.7f, 0.9f, 1f));
+            CreateText(card.transform, "КРЫЛЬЯ", 48, FontStyle.Bold, TextAnchor.MiddleCenter,
+                new Vector2(0.1f, 0.37f), new Vector2(0.9f, 0.47f), new Color(0.75f, 0.92f, 1f));
             float seconds = WingsPickup.FlightDuration;
             CreateText(card.transform,
                 $"Поднимают курьера выше башен на {seconds:0.#} с. Наземные препятствия не страшны, в воздухе — своя дорожка монет.",
-                26, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.06f, 0.2f), new Vector2(0.94f, 0.37f),
-                new Color(0.82f, 0.88f, 0.98f));
+                28, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.12f, 0.2f), new Vector2(0.88f, 0.37f),
+                Parchment);
 
             if (!save.wingsOffered)
             {
@@ -73,7 +71,7 @@ namespace CourierRunner
                 int price = config.wingsPrice;
                 bool affordable = SaveSystem.Coins >= price;
                 string label = affordable ? $"КУПИТЬ ЗА {price} ●" : $"НУЖНО ЕЩЁ {price - SaveSystem.Coins} ●";
-                Button buy = CreateButton(card.transform, label, new Vector2(0.12f, 0.04f), new Vector2(0.88f, 0.17f),
+                Button buy = CreateButton(card.transform, label, new Vector2(0.14f, 0.07f), new Vector2(0.86f, 0.19f),
                     affordable ? new Color(0.95f, 0.66f, 0.12f) : Slate, 30);
                 buy.interactable = affordable;
                 buy.onClick.AddListener(() => Confirm($"Купить крылья за {price} монет?", () => BuyWings(price)));
@@ -98,14 +96,13 @@ namespace CourierRunner
 
         private void BuildFlightUpgrade(GameConfig config, SaveData save)
         {
-            Image card = CreateImage("Flight Upgrade Card", page, new Color(0.1f, 0.14f, 0.27f, 0.97f));
-            SetAnchors(card.rectTransform, new Vector2(0.06f, 0.16f), new Vector2(0.94f, 0.4f));
+            Image card = CreatePanel("Flight Upgrade Card", page, new Vector2(0.04f, 0.15f), new Vector2(0.96f, 0.41f), 60f);
             int level = save.flightLevel;
             int max = config.flightUpgradeMaxLevel;
             CreateText(card.transform, $"ДЛИТЕЛЬНОСТЬ ПОЛЁТА   {level}/{max}", 34, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.05f, 0.68f), new Vector2(0.95f, 0.95f), new Color(0.7f, 0.9f, 1f));
             CreateText(card.transform, $"+{config.flightUpgradeSeconds:0.#} с к полёту за каждый уровень", 26, FontStyle.Normal,
-                TextAnchor.MiddleCenter, new Vector2(0.05f, 0.45f), new Vector2(0.95f, 0.68f), new Color(0.82f, 0.88f, 0.98f));
+                TextAnchor.MiddleCenter, new Vector2(0.1f, 0.45f), new Vector2(0.9f, 0.68f), Parchment);
 
             if (level >= max)
             {
@@ -140,11 +137,9 @@ namespace CourierRunner
         {
             Image overlay = CreateImage("Confirm", page, new Color(0f, 0f, 0f, 0.7f));
             Stretch(overlay.rectTransform);
-            Image box = CreateImage("Confirm Box", overlay.transform, new Color(0.08f, 0.11f, 0.22f, 1f));
-            SetAnchors(box.rectTransform, new Vector2(0.08f, 0.38f), new Vector2(0.92f, 0.62f));
-            box.gameObject.AddComponent<Outline>().effectColor = new Color(0.95f, 0.7f, 0.2f, 0.6f);
+            Image box = CreatePanel("Confirm Box", overlay.transform, new Vector2(0.06f, 0.36f), new Vector2(0.94f, 0.64f), 70f);
             CreateText(box.transform, question, 36, FontStyle.Bold, TextAnchor.MiddleCenter,
-                new Vector2(0.06f, 0.48f), new Vector2(0.94f, 0.92f), Color.white);
+                new Vector2(0.12f, 0.48f), new Vector2(0.88f, 0.86f), Parchment);
             Button yes = CreateButton(box.transform, "ДА", new Vector2(0.08f, 0.1f), new Vector2(0.46f, 0.4f), new Color(0.2f, 0.65f, 0.4f), 32);
             Button no = CreateButton(box.transform, "НЕТ", new Vector2(0.54f, 0.1f), new Vector2(0.92f, 0.4f), Slate, 32);
             yes.onClick.AddListener(() =>

@@ -187,8 +187,8 @@ namespace CourierRunner
 
         private static readonly SegmentTheme[] RegularThemes =
         {
-            SegmentTheme.DenseForest, SegmentTheme.DenseForest, SegmentTheme.SparseForest, SegmentTheme.Rocky,
-            SegmentTheme.Fenced, SegmentTheme.Towers, SegmentTheme.Clearing,
+            SegmentTheme.DenseForest, SegmentTheme.DenseForest, SegmentTheme.SparseForest, SegmentTheme.SparseForest,
+            SegmentTheme.Rocky, SegmentTheme.Boulders, SegmentTheme.Towers, SegmentTheme.Clearing,
         };
 
         private void PlaceFinish(TrackSegment segment)

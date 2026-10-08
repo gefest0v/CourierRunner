@@ -125,7 +125,9 @@ namespace CourierRunner
             controller.radius = 0.48f;
             controller.center = Vector3.zero;
             Library.CreateCourierVisual(player.transform);
-            return player.AddComponent<RunnerController>();
+            RunnerController runner = player.AddComponent<RunnerController>();
+            runner.AttachWings(Library.CreateWingsVisual(player.transform));
+            return runner;
         }
 
         private static RunnerCamera BuildCamera(Transform target)

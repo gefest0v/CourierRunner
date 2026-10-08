@@ -46,7 +46,8 @@ namespace CourierRunner
             if (world == null || world.Runner == null) return;
             RunnerController runner = world.Runner;
             Vector3 offset = runner.transform.position - transform.position;
-            if (offset.z < -25f)
+            // offset = courier - treant, so a large positive Z means the treant is well behind the courier.
+            if (offset.z > 25f)
             {
                 PooledObject.ReleaseOrDestroy(gameObject);
                 return;

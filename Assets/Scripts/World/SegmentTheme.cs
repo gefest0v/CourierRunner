@@ -6,7 +6,7 @@ namespace CourierRunner
         DenseForest,
         SparseForest,
         Rocky,
-        Fenced,
+        Boulders,
         Towers,
         Clearing,
         TreantGrove,
@@ -17,34 +17,38 @@ namespace CourierRunner
     /// <summary>Decoration density and which gameplay elements a theme accepts.</summary>
     public sealed class ThemeProfile
     {
-        public int treesPerSide;
-        public float treeMinX = 7f;
-        public float treeMaxX = 18f;
-        public float pineShare = 0.5f;
-        public int rocksPerSide;
+        /// <summary>Trees close to the road (x 6.8–11 m).</summary>
+        public int nearTreesPerSide = 4;
+        /// <summary>Trees further out (x 11–20 m) that fill the gaps.</summary>
+        public int farTreesPerSide = 5;
+        public float nearTreeMinX = 6.8f;
+        public float pineShare = 0.72f;
+        public int rocksPerSide = 2;
         public int stumps;
-        public bool fences;
         public int wells;
-        public int forestCardsPerSide = 2;
+        /// <summary>Painted tree groups (PointForest cards) at x 13–30 m.</summary>
+        public int forestCardsPerSide = 4;
+        /// <summary>Wide painted forest walls behind everything (ForestSide images).</summary>
+        public int forestWallsPerSide = 1;
 
         public bool allowsObstacles = true;
-        public bool allowsTowers;
+        public bool allowsTowers = true;
         public bool allowsPowerUps = true;
         /// <summary>False for event segments: the pattern generator leaves them to the event.</summary>
         public bool allowsGeneratedRows = true;
 
         public static ThemeProfile For(SegmentTheme theme) => theme switch
         {
-            SegmentTheme.DenseForest => new ThemeProfile { treesPerSide = 9, treeMinX = 6.8f, treeMaxX = 16f, pineShare = 0.6f, rocksPerSide = 1, stumps = 1 },
-            SegmentTheme.SparseForest => new ThemeProfile { treesPerSide = 4, treeMinX = 8f, treeMaxX = 19f, rocksPerSide = 1, stumps = 1 },
-            SegmentTheme.Rocky => new ThemeProfile { treesPerSide = 4, treeMinX = 9f, rocksPerSide = 4, stumps = 0, pineShare = 0.7f },
-            SegmentTheme.Fenced => new ThemeProfile { treesPerSide = 5, treeMinX = 8.5f, fences = true, rocksPerSide = 1 },
-            SegmentTheme.Towers => new ThemeProfile { treesPerSide = 5, treeMinX = 8f, rocksPerSide = 2, allowsTowers = true },
-            SegmentTheme.Clearing => new ThemeProfile { treesPerSide = 2, treeMinX = 11f, treeMaxX = 19f, stumps = 2, wells = 1 },
-            SegmentTheme.TreantGrove => new ThemeProfile { treesPerSide = 6, treeMinX = 9f, treeMaxX = 18f, pineShare = 0.2f, allowsObstacles = false, allowsPowerUps = false, allowsGeneratedRows = false },
-            SegmentTheme.Safe => new ThemeProfile { treesPerSide = 6, treeMinX = 7.5f, rocksPerSide = 1, allowsObstacles = false },
-            SegmentTheme.Finish => new ThemeProfile { treesPerSide = 3, treeMinX = 10f, stumps = 1, allowsObstacles = false, allowsPowerUps = false },
-            _ => new ThemeProfile { treesPerSide = 5 },
+            SegmentTheme.DenseForest => new ThemeProfile { nearTreesPerSide = 7, farTreesPerSide = 9, pineShare = 0.78f, rocksPerSide = 2, stumps = 1, forestCardsPerSide = 7 },
+            SegmentTheme.SparseForest => new ThemeProfile { nearTreesPerSide = 4, farTreesPerSide = 8, nearTreeMinX = 7.5f, rocksPerSide = 3, stumps = 2, forestCardsPerSide = 6 },
+            SegmentTheme.Rocky => new ThemeProfile { nearTreesPerSide = 4, farTreesPerSide = 7, pineShare = 0.75f, rocksPerSide = 6, forestCardsPerSide = 6 },
+            SegmentTheme.Boulders => new ThemeProfile { nearTreesPerSide = 3, farTreesPerSide = 7, pineShare = 0.7f, rocksPerSide = 9, forestCardsPerSide = 6 },
+            SegmentTheme.Towers => new ThemeProfile { nearTreesPerSide = 5, farTreesPerSide = 8, rocksPerSide = 3, forestCardsPerSide = 6 },
+            SegmentTheme.Clearing => new ThemeProfile { nearTreesPerSide = 2, farTreesPerSide = 7, nearTreeMinX = 9f, rocksPerSide = 3, stumps = 3, wells = 1, forestCardsPerSide = 6 },
+            SegmentTheme.TreantGrove => new ThemeProfile { nearTreesPerSide = 3, farTreesPerSide = 7, nearTreeMinX = 8.5f, pineShare = 0.55f, rocksPerSide = 1, forestCardsPerSide = 5, allowsObstacles = false, allowsTowers = false, allowsPowerUps = false, allowsGeneratedRows = false },
+            SegmentTheme.Safe => new ThemeProfile { nearTreesPerSide = 6, farTreesPerSide = 8, rocksPerSide = 2, forestCardsPerSide = 6, allowsObstacles = false, allowsTowers = false },
+            SegmentTheme.Finish => new ThemeProfile { nearTreesPerSide = 2, farTreesPerSide = 6, nearTreeMinX = 9f, stumps = 1, forestCardsPerSide = 5, allowsObstacles = false, allowsTowers = false, allowsPowerUps = false },
+            _ => new ThemeProfile(),
         };
     }
 }

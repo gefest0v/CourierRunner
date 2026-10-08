@@ -108,14 +108,21 @@ namespace CourierRunner
             FlightDuration = duration;
             FlightRemaining = Mathf.Max(FlightRemaining, duration);
             verticalSpeed = 0f;
-            if (wingsVisual == null && GameWorld.Current != null)
-            {
-                wingsVisual = GameWorld.Current.Library.CreateWingsVisual(transform);
-                wingsVisual.transform.localPosition = new Vector3(0f, 0.35f, -0.3f);
-                wingsVisual.transform.localScale = Vector3.one * 0.9f;
-            }
             if (wingsVisual != null) wingsVisual.SetActive(true);
             FlightStarted?.Invoke(FlightRemaining);
+        }
+
+        /// <summary>
+        /// Gives the courier its (hidden) wings. Built up front: creating objects inside the pickup's
+        /// trigger callback is not allowed to destroy helper colliders immediately.
+        /// </summary>
+        public void AttachWings(GameObject visual)
+        {
+            wingsVisual = visual;
+            wingsVisual.transform.SetParent(transform, false);
+            wingsVisual.transform.localPosition = new Vector3(0f, 0.35f, -0.3f);
+            wingsVisual.transform.localScale = Vector3.one * 0.9f;
+            wingsVisual.SetActive(false);
         }
 
         private void EndFlight()
