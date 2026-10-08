@@ -17,6 +17,8 @@ namespace CourierRunner
         public RunnerController Runner { get; private set; }
         public RunnerCamera RunnerCamera { get; private set; }
         public SegmentManager Segments { get; private set; }
+        public DifficultyDirector Difficulty { get; private set; }
+        public PatternGenerator Generator { get; private set; }
         public Material GrassMaterial { get; private set; }
         public Material PathMaterial { get; private set; }
         /// <summary>True when the scene was reloaded to start a run right away (retry / level select).</summary>
@@ -60,8 +62,10 @@ namespace CourierRunner
             RunnerCamera = BuildCamera(Runner.transform);
             new GameObject("Backdrop").AddComponent<Backdrop>().transform.SetParent(transform, false);
 
+            Difficulty = new DifficultyDirector(config, GameSession.Mode);
+            Generator = new PatternGenerator(config, Difficulty);
             Segments = gameObject.AddComponent<SegmentManager>();
-            Segments.Initialize(this, new SimpleSegmentPopulator());
+            Segments.Initialize(this, Generator);
             int seed = GameSession.Mode == RunMode.Story ? config.storySeed : Random.Range(1, int.MaxValue);
             Segments.Begin(GameSession.Mode, seed);
 
@@ -129,6 +133,11 @@ namespace CourierRunner
             follow.target = target;
             camera.transform.position = target.position + new Vector3(0f, 5f, -8f);
             return follow;
+        }
+
+        private void Update()
+        {
+            if (Runner.IsRunning) Runner.forwardSpeed = Difficulty.SpeedAt(RunnerTrackZ);
         }
 
         private void LateUpdate()

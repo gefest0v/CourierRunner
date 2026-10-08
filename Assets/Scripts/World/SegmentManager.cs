@@ -58,6 +58,8 @@ namespace CourierRunner
             themeRandom = new System.Random(runSeed);
             finishPlaced = false;
             FinishZ = mode == RunMode.Story ? config.storyLevelLength : float.PositiveInfinity;
+            context.StopZ = mode == RunMode.Story ? config.storyLevelLength - config.storyCalmDistance : float.PositiveInfinity;
+            populator?.BeginRun(mode, runSeed);
             nextIndex = -config.segmentsBehind;
             nextStartZ = nextIndex * config.segmentLength;
             FillAhead(0f);
@@ -108,8 +110,6 @@ namespace CourierRunner
                 context.Segment = segment;
                 context.Library = world.Library;
                 context.Random = random;
-                context.Mode = Mode;
-                context.Distance = nextStartZ;
                 populator?.Populate(context);
             }
 

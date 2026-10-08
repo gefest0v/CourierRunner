@@ -9,7 +9,14 @@ namespace CourierRunner
         public float fireInterval = 1.25f;
         private float cooldown = 0.5f;
 
-        public void OnTakenFromPool() => cooldown = 0.5f;
+        public void OnTakenFromPool()
+        {
+            cooldown = 0.5f;
+            GameWorld world = GameWorld.Current;
+            if (world != null && world.Difficulty != null)
+                fireInterval = world.Difficulty.TowerFireIntervalAt(world.Root.InverseTransformPoint(transform.position).z);
+        }
+
         public void OnReturnedToPool() { }
 
         private void Update()

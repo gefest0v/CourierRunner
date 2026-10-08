@@ -10,6 +10,8 @@ namespace CourierRunner
         public float laneWidth = 3f;
         public float laneChangeSpeed = 12f;
         public float jumpHeight = 2.15f;
+        [Tooltip("Ground distance covered by a jump. Constant at every speed, so faster runs mean shorter, snappier jumps.")]
+        public float jumpLength = 11f;
 
         public int Coins { get; private set; }
         public bool IsRunning { get; private set; }
@@ -30,6 +32,7 @@ namespace CourierRunner
             laneWidth = config.laneWidth;
             laneChangeSpeed = config.laneChangeSpeed;
             jumpHeight = config.jumpHeight;
+            jumpLength = config.jumpLength;
             if (GetComponent<RunnerInput>() == null) gameObject.AddComponent<RunnerInput>();
         }
 
@@ -47,7 +50,7 @@ namespace CourierRunner
 
             if (controller.isGrounded && verticalSpeed < 0f)
                 verticalSpeed = -1f;
-            verticalSpeed += Physics.gravity.y * Time.deltaTime;
+            verticalSpeed -= Gravity * Time.deltaTime;
 
             float targetX = lane * laneWidth;
             float horizontal = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime)
@@ -81,9 +84,15 @@ namespace CourierRunner
 
         public void Jump()
         {
+            // Apex height h reached after half the air time T: v0 = 4h / T.
             if (IsRunning && controller.isGrounded)
-                verticalSpeed = Mathf.Sqrt(jumpHeight * -2f * Physics.gravity.y);
+                verticalSpeed = 4f * jumpHeight / AirTime;
         }
+
+        private float AirTime => jumpLength / Mathf.Max(1f, forwardSpeed);
+
+        /// <summary>Gravity that lands a jump exactly <see cref="jumpLength"/> meters later: g = 8h / T².</summary>
+        private float Gravity => 8f * jumpHeight / (AirTime * AirTime);
 
         public void AddCoin() => Coins++;
 

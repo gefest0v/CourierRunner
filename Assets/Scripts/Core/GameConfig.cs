@@ -14,8 +14,26 @@ namespace CourierRunner
         public float laneWidth = 3f;
         public float laneChangeSpeed = 12f;
         public float jumpHeight = 2.15f;
+        [Tooltip("Ground distance covered by one jump, in meters. Constant at every speed so obstacle patterns stay passable.")]
+        public float jumpLength = 11f;
         [Tooltip("Minimum swipe length in pixels before it counts as a lane change or jump.")]
         public float swipeThreshold = 40f;
+
+        [Header("Difficulty")]
+        [Tooltip("Run speed at full difficulty.")]
+        public float maxSpeed = 18f;
+        [Tooltip("Distance between obstacle rows at difficulty 0.")]
+        public float rowSpacingEasy = 16f;
+        [Tooltip("Distance between obstacle rows at difficulty 1.")]
+        public float rowSpacingHard = 10f;
+        [Range(0f, 1f)] public float storyDifficultyStart = 0.05f;
+        [Range(0f, 1f)] public float storyDifficultyEnd = 0.45f;
+        [Tooltip("Endless mode reaches ~63 % difficulty after this many meters.")]
+        public float endlessDifficultyDistance = 2500f;
+        [Tooltip("Difficulty rises in this many discrete steps.")]
+        public int difficultySteps = 10;
+        public float towerFireIntervalEasy = 1.6f;
+        public float towerFireIntervalHard = 0.8f;
 
         [Header("Track")]
         [Tooltip("Length of one road segment in meters. Keep it a multiple of 20 so ground textures tile seamlessly.")]
@@ -40,6 +58,8 @@ namespace CourierRunner
         public float storyLevelLength = 700f;
         [Tooltip("Story levels are generated from a fixed seed so every attempt is the same road.")]
         public int storySeed = 1001;
+        [Tooltip("Obstacle-free run-up before the recipient.")]
+        public float storyCalmDistance = 25f;
 
         [Header("Backdrop")]
         [Tooltip("Distance from the camera to the painted forest horizon.")]

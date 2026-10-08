@@ -18,6 +18,7 @@ namespace CourierRunner
         private GameObject page;
         private GameObject gameplayHud;
         private Text coinText;
+        private Text debugText;
 
         private void Start()
         {
@@ -31,6 +32,7 @@ namespace CourierRunner
         {
             if (state != ScreenState.Playing || runner == null) return;
             coinText.text = $"ЗОЛОТО  {runner.Coins}";
+            UpdateDebugText();
             if (runner.IsRunning || !runner.HasStarted) return;
             FinishRun(runner.HasDelivered);
         }
@@ -195,8 +197,21 @@ namespace CourierRunner
             Image coinPlate = CreateImage("Coin Plate", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
             SetAnchors(coinPlate.rectTransform, new Vector2(0.04f, 0.91f), new Vector2(0.40f, 0.97f));
             coinText = CreateText(coinPlate.transform, "ЗОЛОТО  0", 28, FontStyle.Bold, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, Gold);
+            if (Debug.isDebugBuild)
+                debugText = CreateText(gameplayHud.transform, string.Empty, 20, FontStyle.Normal, TextAnchor.UpperLeft,
+                    new Vector2(0.04f, 0.80f), new Vector2(0.96f, 0.90f), new Color(1f, 1f, 1f, 0.75f));
 
             runner.BeginRun();
+        }
+
+        /// <summary>Tester overlay (editor and development builds only).</summary>
+        private void UpdateDebugText()
+        {
+            GameWorld world = GameWorld.Current;
+            if (debugText == null || world == null) return;
+            float distance = world.RunnerTrackZ;
+            debugText.text = $"{distance:0} м   скорость {runner.forwardSpeed:0.0}   сложность {world.Difficulty.DifficultyAt(distance):0.0}\n" +
+                             $"паттерн: {world.Generator.LastPattern ?? "—"}";
         }
 
         private void ShowResult(bool won, int earned)

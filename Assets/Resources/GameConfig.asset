@@ -16,6 +16,28 @@ MonoBehaviour:
   laneWidth: 3
   laneChangeSpeed: 12
   jumpHeight: 2.15
+  jumpLength: 11
   swipeThreshold: 40
+  maxSpeed: 18
+  rowSpacingEasy: 16
+  rowSpacingHard: 10
+  storyDifficultyStart: 0.05
+  storyDifficultyEnd: 0.45
+  endlessDifficultyDistance: 2500
+  difficultySteps: 10
+  towerFireIntervalEasy: 1.6
+  towerFireIntervalHard: 0.8
+  segmentLength: 40
+  segmentsAhead: 5
+  segmentsBehind: 1
+  recycleBehindDistance: 15
+  nearZoneDistance: 30
+  midZoneDistance: 90
+  safeStartDistance: 80
+  originShiftDistance: 400
+  storyLevelLength: 700
+  storySeed: 1001
+  storyCalmDistance: 25
+  backdropDistance: 80
   keepCoinsOnFail: 1
   wingsPrice: 300
