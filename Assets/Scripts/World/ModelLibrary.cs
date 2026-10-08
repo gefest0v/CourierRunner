@@ -20,6 +20,7 @@ namespace CourierRunner
         public const string Tower = "Lane Tower";
         public const string Fireball = "Tower Fireball";
         public const string Treant = "Treant";
+        public const string Wings = "Wings Pickup";
     }
 
     /// <summary>
@@ -70,6 +71,7 @@ namespace CourierRunner
             Register(PoolKeys.Coin, CreateCoinTemplate());
             Register(PoolKeys.Fireball, TowerProjectile.CreateTemplate());
             Register(PoolKeys.Treant, CreateTreantTemplate());
+            Register(PoolKeys.Wings, CreateWingsPickupTemplate());
         }
 
         public static string ForestCardKey(int variant) => PoolKeys.ForestCard + " " + variant;
@@ -256,6 +258,70 @@ namespace CourierRunner
             rigidbody.useGravity = false;
             CreateDust(root.transform);
             root.AddComponent<Treant>();
+            return root;
+        }
+
+        /// <summary>
+        /// Crystal Maiden's icy wings: two fans of glowing feathers on pivots that <see cref="WingFlap"/> rotates.
+        /// The root's origin is between the shoulder blades; the wings spread along ±X.
+        /// </summary>
+        public GameObject CreateWingsVisual(Transform parent)
+        {
+            var root = new GameObject("Wings");
+            root.transform.SetParent(parent, false);
+            var feather = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            feather.SetColor("_BaseColor", new Color(0.86f, 0.95f, 1f));
+            feather.SetColor("_EmissionColor", new Color(0.35f, 0.75f, 1f) * 1.6f);
+            feather.EnableKeyword("_EMISSION");
+            feather.SetFloat("_Smoothness", 0.8f);
+            var tip = new Material(feather);
+            tip.SetColor("_BaseColor", new Color(0.55f, 0.82f, 1f));
+
+            Transform left = BuildWing(root.transform, -1f, feather, tip);
+            Transform right = BuildWing(root.transform, 1f, feather, tip);
+            WingFlap flap = root.AddComponent<WingFlap>();
+            flap.left = left;
+            flap.right = right;
+            return root;
+        }
+
+        private static Transform BuildWing(Transform root, float side, Material feather, Material tip)
+        {
+            var pivot = new GameObject(side < 0f ? "Left Wing" : "Right Wing").transform;
+            pivot.SetParent(root, false);
+            for (int i = 0; i < 4; i++)
+            {
+                float spread = 0.45f + i * 0.32f;
+                float lift = 0.3f - i * 0.13f;
+                AddPart(pivot, PrimitiveType.Sphere, new Vector3(side * spread, lift, 0f),
+                    new Vector3(0.75f - i * 0.08f, 0.28f, 0.08f), new Vector3(0f, 0f, side * (18f - i * 12f)),
+                    i == 3 ? tip : feather);
+            }
+            foreach (Renderer renderer in pivot.GetComponentsInChildren<Renderer>())
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+            return pivot;
+        }
+
+        private GameObject CreateWingsPickupTemplate()
+        {
+            var root = new GameObject(PoolKeys.Wings);
+            root.transform.SetParent(templateRoot, false);
+            GameObject wings = CreateWingsVisual(root.transform);
+            wings.transform.localPosition = new Vector3(0f, 0.2f, 0f);
+            wings.transform.localScale = Vector3.one * 1.1f;
+            wings.GetComponent<WingFlap>().flapsPerSecond = 1.1f;
+
+            var glow = new GameObject("Glow").AddComponent<Light>();
+            glow.transform.SetParent(root.transform, false);
+            glow.type = LightType.Point;
+            glow.color = new Color(0.45f, 0.8f, 1f);
+            glow.intensity = 2f;
+            glow.range = 5f;
+
+            SphereCollider trigger = root.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = 1.1f;
+            root.AddComponent<WingsPickup>();
             return root;
         }
 

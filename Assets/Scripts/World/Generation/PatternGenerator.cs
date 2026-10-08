@@ -18,6 +18,7 @@ namespace CourierRunner
             public bool Coins;
             public int CoinLane;
             public bool CoinArc;
+            public bool PowerUp;
         }
 
         private const float CoinGroundHeight = 1f;
@@ -37,6 +38,11 @@ namespace CourierRunner
         /// <summary>Name of the most recently planned pattern, for the debug overlay.</summary>
         public string LastPattern { get; private set; }
 
+        /// <summary>Track distances where obstacles must not appear (e.g. a flight's landing window).</summary>
+        public System.Func<float, bool> SuppressObstacles;
+
+        private float lastPowerUpZ;
+
         public PatternGenerator(GameConfig config, DifficultyDirector director)
         {
             this.config = config;
@@ -51,6 +57,7 @@ namespace CourierRunner
             recoveryRows = 1;
             coinLane = 1;
             LastPattern = null;
+            lastPowerUpZ = 0f;
         }
 
         public void Populate(SegmentBuildContext context)
@@ -83,6 +90,11 @@ namespace CourierRunner
 
             float difficulty = director.DifficultyAt(z);
             float spacing = director.RowSpacingAt(z);
+            if (ShouldPlaceWings(z))
+            {
+                PlanWings(spacing);
+                return;
+            }
             if (!TryChoosePattern(z, difficulty, spacing, out PatternCell[][] rows, out PatternPath path))
             {
                 pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = coinLane });
@@ -108,6 +120,33 @@ namespace CourierRunner
                 });
             }
             coinLane = path.Lanes[rows.Length - 1];
+        }
+
+        /// <summary>Wings only after they were bought, never too often, and instead of an obstacle pattern.</summary>
+        private bool ShouldPlaceWings(float z)
+        {
+            if (!SaveSystem.Data.wingsPurchased) return false;
+            if (z - lastPowerUpZ < config.wingsMinGap) return false;
+            return random.NextDouble() < config.wingsSpawnChance;
+        }
+
+        /// <summary>
+        /// A calm stretch: recovery rows, two rows of coins leading into the pickup lane, the pickup
+        /// itself, and one more empty row. No obstacles, so it is always reachable.
+        /// </summary>
+        private void PlanWings(float spacing)
+        {
+            int lane = random.Next(3);
+            int calmRows = Mathf.Max(recoveryRows, 1);
+            for (int i = 0; i < calmRows; i++)
+                pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = coinLane });
+            for (int i = 0; i < 2; i++)
+                pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = true, CoinLane = lane });
+            pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, PowerUp = true, CoinLane = lane });
+            pending.Enqueue(new PlannedRow { Cells = EmptyRow, SpacingAfter = spacing, Coins = false, CoinLane = lane });
+            coinLane = lane;
+            recoveryRows = 0;
+            LastPattern = "wings";
         }
 
         private bool TryChoosePattern(float z, float difficulty, float spacing, out PatternCell[][] rows, out PatternPath path)
@@ -179,10 +218,22 @@ namespace CourierRunner
         {
             TrackSegment segment = context.Segment;
             ThemeProfile profile = segment.Profile;
+            float trackZ = segment.StartZ + localZ;
+            if (row.PowerUp)
+            {
+                if (profile.allowsPowerUps)
+                {
+                    context.Library.Get(PoolKeys.Wings, segment.Gameplay, segment.LanePoint(row.CoinLane - 1, localZ, 1.2f));
+                    lastPowerUpZ = trackZ;
+                }
+                return;
+            }
+
+            bool suppress = SuppressObstacles != null && SuppressObstacles(trackZ);
             bool arcHasObstacle = false;
             for (int lane = 0; lane < 3; lane++)
             {
-                string key = KeyFor(row.Cells[lane], profile);
+                string key = suppress ? null : KeyFor(row.Cells[lane], profile);
                 if (key == null) continue;
                 context.Library.Get(key, segment.Gameplay, segment.LanePoint(lane - 1, localZ));
                 if (lane == row.CoinLane) arcHasObstacle = true;

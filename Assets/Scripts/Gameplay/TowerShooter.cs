@@ -25,6 +25,8 @@ namespace CourierRunner
             if (world == null || world.Runner == null || !world.Runner.IsRunning) return;
             cooldown -= Time.deltaTime;
             Vector3 runnerPosition = world.Runner.transform.position;
+            // Fireballs fly at head height; a flying courier is out of reach.
+            if (world.Runner.IsFlying) return;
             Vector3 position = transform.position;
             float forwardDistance = position.z - runnerPosition.z;
             bool sameLane = Mathf.Abs(position.x - runnerPosition.x) < 1.15f;

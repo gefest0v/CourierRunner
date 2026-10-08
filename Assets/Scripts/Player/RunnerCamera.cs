@@ -7,6 +7,9 @@ namespace CourierRunner
     {
         public Transform target;
         private readonly Vector3 offset = new(0f, 5f, -8f);
+        /// <summary>Higher and further back while flying so the air coin lines are readable.</summary>
+        private readonly Vector3 flightOffset = new(0f, 7.5f, -11f);
+        private RunnerController runner;
         private Camera gameCamera;
         private int lastScreenWidth;
         private int lastScreenHeight;
@@ -59,8 +62,12 @@ namespace CourierRunner
         private void LateUpdate()
         {
             if (target == null) return;
-            transform.position = Vector3.Lerp(transform.position, target.position + offset, 8f * Time.deltaTime);
-            transform.LookAt(target.position + new Vector3(0f, 1f, 4f));
+            if (runner == null || runner.transform != target) runner = target.GetComponent<RunnerController>();
+            float flight = runner != null ? runner.FlightBlend : 0f;
+            // While flying the camera keeps the road in view instead of following the courier all the way up.
+            Vector3 follow = target.position + Vector3.Lerp(offset, flightOffset, flight) - new Vector3(0f, flight * 4f, 0f);
+            transform.position = Vector3.Lerp(transform.position, follow, 8f * Time.deltaTime);
+            transform.LookAt(target.position + new Vector3(0f, 1f - flight * 2.5f, 4f + flight * 4f));
 
             float strength = Mathf.Max(trauma, heldTrauma);
             heldTrauma = 0f;

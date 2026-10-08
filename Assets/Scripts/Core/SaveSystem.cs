@@ -13,6 +13,8 @@ namespace CourierRunner
         public List<string> seenDialogues = new();
         public bool wingsOffered;
         public bool wingsPurchased;
+        /// <summary>Purchased flight-duration upgrades.</summary>
+        public int flightLevel;
         public float bestDistance;
         public int bestRunCoins;
     }

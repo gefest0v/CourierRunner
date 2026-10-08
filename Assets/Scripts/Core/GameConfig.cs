@@ -87,6 +87,23 @@ namespace CourierRunner
         public bool keepCoinsOnFail = true;
         public int wingsPrice = 300;
 
+        [Header("Wings")]
+        [Tooltip("Flight time in seconds before upgrades.")]
+        public float flightDuration = 10f;
+        [Tooltip("Height of the courier's feet above the road while flying. Towers are 3.4 m, treants 3.6 m.")]
+        public float flightHeight = 6f;
+        [Tooltip("Chance that a wings pickup replaces the next obstacle pattern once allowed.")]
+        [Range(0f, 1f)] public float wingsSpawnChance = 0.3f;
+        [Tooltip("Minimum distance between two wings pickups.")]
+        public float wingsMinGap = 260f;
+        [Tooltip("Air coins switch lanes this often during a flight (meters).")]
+        public float airCoinLaneSwitch = 24f;
+        [Tooltip("Seconds added to the flight per purchased upgrade.")]
+        public float flightUpgradeSeconds = 1.5f;
+        [Tooltip("Price of the first flight upgrade; each next level costs twice as much.")]
+        public int flightUpgradeBaseCost = 200;
+        public int flightUpgradeMaxLevel = 3;
+
         private static GameConfig instance;
 
         public static GameConfig Instance

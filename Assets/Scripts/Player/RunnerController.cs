@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace CourierRunner
@@ -19,6 +20,22 @@ namespace CourierRunner
         public bool HasDelivered { get; private set; }
         public int Lane => lane;
 
+        /// <summary>Raised with the flight duration whenever wings are picked up.</summary>
+        public event Action<float> FlightStarted;
+        public event Action FlightEnded;
+        public bool IsFlying { get; private set; }
+        public float FlightRemaining { get; private set; }
+        public float FlightDuration { get; private set; }
+        /// <summary>0 on the ground, 1 at full flight altitude. Drives the camera.</summary>
+        public float FlightBlend => Mathf.Clamp01((transform.position.y - GroundCenterY) / Mathf.Max(0.1f, flightHeight));
+
+        /// <summary>Capsule center height when standing on the road.</summary>
+        private const float GroundCenterY = 1.05f;
+        private float flightHeight = 6f;
+        private float altitudeVelocity;
+        private float invulnerableUntil;
+        private GameObject wingsVisual;
+
         private CharacterController controller;
         private int lane;
         private float verticalSpeed;
@@ -33,6 +50,7 @@ namespace CourierRunner
             laneChangeSpeed = config.laneChangeSpeed;
             jumpHeight = config.jumpHeight;
             jumpLength = config.jumpLength;
+            flightHeight = config.flightHeight;
             if (GetComponent<RunnerInput>() == null) gameObject.AddComponent<RunnerInput>();
         }
 
@@ -48,14 +66,68 @@ namespace CourierRunner
             KeepLoopingAnimation();
             if (!IsRunning) return;
 
-            if (controller.isGrounded && verticalSpeed < 0f)
-                verticalSpeed = -1f;
-            verticalSpeed -= Gravity * Time.deltaTime;
+            float vertical;
+            if (IsFlying)
+            {
+                vertical = UpdateFlight();
+            }
+            else
+            {
+                if (controller.isGrounded && verticalSpeed < 0f)
+                    verticalSpeed = -1f;
+                verticalSpeed -= Gravity * Time.deltaTime;
+                vertical = verticalSpeed * Time.deltaTime;
+            }
 
             float targetX = lane * laneWidth;
             float horizontal = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime)
                                - transform.position.x;
-            controller.Move(new Vector3(horizontal, verticalSpeed * Time.deltaTime, forwardSpeed * Time.deltaTime));
+            controller.Move(new Vector3(horizontal, vertical, forwardSpeed * Time.deltaTime));
+        }
+
+        /// <summary>Climbs to flight altitude, cruises, then glides back down when time runs out.</summary>
+        private float UpdateFlight()
+        {
+            FlightRemaining = Mathf.Max(0f, FlightRemaining - Time.deltaTime);
+            bool climbing = FlightRemaining > 0f;
+            float targetY = climbing ? GroundCenterY + flightHeight : GroundCenterY - 0.2f;
+            float y = transform.position.y;
+            float newY = Mathf.SmoothDamp(y, targetY, ref altitudeVelocity, climbing ? 0.45f : 0.55f);
+            if (!climbing && (controller.isGrounded || newY <= GroundCenterY + 0.05f))
+            {
+                EndFlight();
+                return -1f * Time.deltaTime;
+            }
+            return newY - y;
+        }
+
+        public void StartFlight(float duration)
+        {
+            if (!IsRunning) return;
+            IsFlying = true;
+            FlightDuration = duration;
+            FlightRemaining = Mathf.Max(FlightRemaining, duration);
+            verticalSpeed = 0f;
+            if (wingsVisual == null && GameWorld.Current != null)
+            {
+                wingsVisual = GameWorld.Current.Library.CreateWingsVisual(transform);
+                wingsVisual.transform.localPosition = new Vector3(0f, 0.35f, -0.3f);
+                wingsVisual.transform.localScale = Vector3.one * 0.9f;
+            }
+            if (wingsVisual != null) wingsVisual.SetActive(true);
+            FlightStarted?.Invoke(FlightRemaining);
+        }
+
+        private void EndFlight()
+        {
+            IsFlying = false;
+            FlightRemaining = 0f;
+            altitudeVelocity = 0f;
+            verticalSpeed = -1f;
+            // A short grace period so a landing next to an obstacle is never an instant loss.
+            invulnerableUntil = Time.time + 0.6f;
+            if (wingsVisual != null) wingsVisual.SetActive(false);
+            FlightEnded?.Invoke();
         }
 
         private void KeepLoopingAnimation()
@@ -85,7 +157,7 @@ namespace CourierRunner
         public void Jump()
         {
             // Apex height h reached after half the air time T: v0 = 4h / T.
-            if (IsRunning && controller.isGrounded)
+            if (IsRunning && !IsFlying && controller.isGrounded)
                 verticalSpeed = 4f * jumpHeight / AirTime;
         }
 
@@ -98,7 +170,7 @@ namespace CourierRunner
 
         public void Crash()
         {
-            if (!IsRunning) return;
+            if (!IsRunning || Time.time < invulnerableUntil) return;
             IsRunning = false;
             if (animator != null) animator.SetTrigger("Crash");
         }

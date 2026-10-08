@@ -20,6 +20,8 @@ namespace CourierRunner
         private Text coinText;
         private Text debugText;
         private Text alertText;
+        private GameObject flightBar;
+        private RectTransform flightFill;
         private PortraitStudio portraitStudio;
         private float alertUntil;
 
@@ -38,6 +40,7 @@ namespace CourierRunner
             coinText.text = $"ЗОЛОТО  {runner.Coins}";
             UpdateDebugText();
             UpdateAlert();
+            UpdateFlightBar();
             if (runner.IsRunning || !runner.HasStarted) return;
             FinishRun(runner.HasDelivered);
         }
@@ -127,6 +130,16 @@ namespace CourierRunner
             }
 
             CreateBalancePlate(page.transform);
+            if (SaveSystem.Data.wingsPurchased)
+                CreateText(page.transform, "Транспорт: крылья ✓", 24, FontStyle.Bold, TextAnchor.MiddleRight,
+                    new Vector2(0.4f, 0.92f), new Vector2(0.97f, 0.952f), new Color(0.7f, 0.9f, 1f));
+
+            Button upgrades = CreateButton(page.transform, "УЛУЧШЕНИЯ", new Vector2(0.045f, 0.17f), new Vector2(0.955f, 0.235f),
+                new Color(0.18f, 0.24f, 0.42f, 0.95f), 32);
+            upgrades.onClick.AddListener(ShowShop);
+            if (SaveSystem.Data.wingsOffered && !SaveSystem.Data.wingsPurchased && SaveSystem.Coins >= GameConfig.Instance.wingsPrice)
+                CreateText(upgrades.transform, "●", 30, FontStyle.Bold, TextAnchor.MiddleRight,
+                    new Vector2(0.8f, 0f), new Vector2(0.97f, 1f), Gold);
 
             Button play = CreateButton(page.transform, "▶   ИГРАТЬ", new Vector2(0.045f, 0.045f), new Vector2(0.72f, 0.155f), Ice, 42);
             ApplyButtonArt(play, "UI/PlayButton");
@@ -168,6 +181,24 @@ namespace CourierRunner
 
             Button back = CreateButton(page.transform, "‹  НАЗАД", new Vector2(0.08f, 0.07f), new Vector2(0.42f, 0.14f), Slate, 28);
             back.onClick.AddListener(ShowMainMenu);
+        }
+
+        private void ShowShop()
+        {
+            state = ScreenState.Menu;
+            ClearPage();
+            screenBackground.gameObject.SetActive(true);
+            page = CreatePage("Upgrades", Navy);
+            CreateBalancePlate(page.transform);
+            GameWorld world = GameWorld.Current;
+            Texture icon = null;
+            if (world != null)
+            {
+                if (portraitStudio == null) portraitStudio = PortraitStudio.Create(world.transform);
+                icon = portraitStudio.Portrait(new DialogueCharacter { id = "wings", model = "wings" }, world.Library);
+                portraitStudio.SetRendering(true);
+            }
+            new UpgradeShop(page.transform, icon, ShowShop, ShowMainMenu, PlayDialogue).Build();
         }
 
         private void ShowControls()
@@ -228,6 +259,16 @@ namespace CourierRunner
             Image coinPlate = CreateImage("Coin Plate", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
             SetAnchors(coinPlate.rectTransform, new Vector2(0.04f, 0.91f), new Vector2(0.40f, 0.97f));
             coinText = CreateText(coinPlate.transform, "ЗОЛОТО  0", 28, FontStyle.Bold, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, Gold);
+            Image barBack = CreateImage("Flight Bar", gameplayHud.transform, new Color(0.03f, 0.05f, 0.1f, 0.72f));
+            SetAnchors(barBack.rectTransform, new Vector2(0.04f, 0.875f), new Vector2(0.4f, 0.9f));
+            Image fill = CreateImage("Flight Fill", barBack.transform, new Color(0.45f, 0.82f, 1f, 1f));
+            flightFill = fill.rectTransform;
+            SetAnchors(flightFill, Vector2.zero, Vector2.one);
+            CreateText(barBack.transform, "КРЫЛЬЯ", 18, FontStyle.Bold, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one,
+                new Color(0.05f, 0.1f, 0.2f));
+            flightBar = barBack.gameObject;
+            flightBar.SetActive(false);
+
             alertText = CreateText(gameplayHud.transform, string.Empty, 64, FontStyle.Bold, TextAnchor.MiddleCenter,
                 new Vector2(0.05f, 0.62f), new Vector2(0.95f, 0.74f), new Color(1f, 0.55f, 0.25f, 0f));
             alertText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
@@ -236,6 +277,14 @@ namespace CourierRunner
                     new Vector2(0.04f, 0.80f), new Vector2(0.96f, 0.90f), new Color(1f, 1f, 1f, 0.75f));
 
             runner.BeginRun();
+        }
+
+        private void UpdateFlightBar()
+        {
+            if (flightBar == null) return;
+            bool flying = runner.IsFlying && runner.FlightDuration > 0f;
+            if (flightBar.activeSelf != flying) flightBar.SetActive(flying);
+            if (flying) flightFill.anchorMax = new Vector2(Mathf.Clamp01(runner.FlightRemaining / runner.FlightDuration), 1f);
         }
 
         /// <summary>Big centered warning for events such as the treant charge.</summary>
@@ -278,6 +327,16 @@ namespace CourierRunner
             CreateText(page.transform, $"Собрано золота: {runner.Coins}\nВ копилку: +{earned}   (всего {SaveSystem.Coins})",
                 30, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.08f, 0.45f), new Vector2(0.92f, 0.56f), Color.white);
 
+            if (SaveSystem.Data.wingsOffered && !SaveSystem.Data.wingsPurchased)
+            {
+                int price = GameConfig.Instance.wingsPrice;
+                string hint = SaveSystem.Coins >= price
+                    ? "Хватает на крылья! Загляни в «Улучшения»."
+                    : $"До крыльев осталось {price - SaveSystem.Coins} ●";
+                CreateText(page.transform, hint, 26, FontStyle.Bold, TextAnchor.MiddleCenter,
+                    new Vector2(0.08f, 0.41f), new Vector2(0.92f, 0.45f), new Color(0.7f, 0.9f, 1f));
+            }
+
             Button retry = CreateButton(page.transform, won ? "↻  ПРОЙТИ ЕЩЁ РАЗ" : "↻  ПОПРОБОВАТЬ ЕЩЁ", new Vector2(0.13f, 0.31f), new Vector2(0.87f, 0.40f), Ice, 30);
             retry.onClick.AddListener(() => GameSession.StartRun(GameSession.Mode, GameSession.LevelId));
             Button map = CreateButton(page.transform, "К КАРТЕ", new Vector2(0.13f, 0.20f), new Vector2(0.87f, 0.28f), new Color(0.18f, 0.22f, 0.34f), 30);
@@ -293,6 +352,7 @@ namespace CourierRunner
 
         private void ClearPage()
         {
+            if (portraitStudio != null) portraitStudio.SetRendering(false);
             if (page != null) Destroy(page);
             if (gameplayHud != null) Destroy(gameplayHud);
             page = null;

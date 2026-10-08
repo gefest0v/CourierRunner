@@ -42,6 +42,7 @@ namespace CourierRunner
             {
                 "crystal_maiden" => library.CreateCrystalMaiden(booth, Vector3.zero),
                 "courier" => library.CreateCourierVisual(booth),
+                "wings" => library.CreateWingsVisual(booth),
                 _ => null,
             };
             if (model == null) return null;
@@ -65,10 +66,11 @@ namespace CourierRunner
             portraitCamera.nearClipPlane = 0.1f;
             portraitCamera.farClipPlane = 30f;
 
-            // Frame the head and shoulders: the upper ~45 % of the model.
-            float height = bounds.size.y;
-            Vector3 focus = new(bounds.center.x, bounds.min.y + height * 0.72f, bounds.center.z);
-            float distance = height * 0.45f / Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
+            // Characters: head and shoulders (upper ~45 %). Objects: the whole thing.
+            bool wholeObject = character.model == "wings";
+            float height = wholeObject ? Mathf.Max(bounds.size.y, bounds.size.x * 0.75f) : bounds.size.y;
+            Vector3 focus = wholeObject ? bounds.center : new Vector3(bounds.center.x, bounds.min.y + height * 0.72f, bounds.center.z);
+            float distance = height * (wholeObject ? 0.62f : 0.45f) / Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad);
             cameraObject.transform.position = focus + new Vector3(0f, height * 0.04f, -distance);
             cameraObject.transform.LookAt(focus);
 

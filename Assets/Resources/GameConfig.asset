@@ -49,3 +49,11 @@ MonoBehaviour:
   backdropDistance: 80
   keepCoinsOnFail: 1
   wingsPrice: 300
+  flightDuration: 10
+  flightHeight: 6
+  wingsSpawnChance: 0.3
+  wingsMinGap: 260
+  airCoinLaneSwitch: 24
+  flightUpgradeSeconds: 1.5
+  flightUpgradeBaseCost: 200
+  flightUpgradeMaxLevel: 3

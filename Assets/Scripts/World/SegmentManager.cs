@@ -48,6 +48,14 @@ namespace CourierRunner
 
         public void SetPopulator(ISegmentPopulator segmentPopulator) => populator = segmentPopulator;
 
+        /// <summary>The active segment containing the given track distance, or null.</summary>
+        public TrackSegment SegmentAt(float trackZ)
+        {
+            foreach (TrackSegment segment in active)
+                if (trackZ >= segment.StartZ && trackZ < segment.EndZ) return segment;
+            return null;
+        }
+
         public void Begin(RunMode mode, int runSeed)
         {
             foreach (TrackSegment segment in active)
