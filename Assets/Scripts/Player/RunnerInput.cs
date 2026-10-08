@@ -15,7 +15,7 @@ namespace CourierRunner
 
         private void Update()
         {
-            if (!runner.IsRunning)
+            if (!runner.IsRunning || Time.timeScale == 0f)
             {
                 trackingTouch = false;
                 return;

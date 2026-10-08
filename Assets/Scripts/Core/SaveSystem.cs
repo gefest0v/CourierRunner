@@ -112,6 +112,16 @@ namespace CourierRunner
             Save();
         }
 
+        /// <summary>Stores an endless run's result. Returns true if the distance is a new record.</summary>
+        public static bool RecordEndlessRun(float distance, int coins)
+        {
+            bool record = distance > Data.bestDistance;
+            if (record) Data.bestDistance = distance;
+            if (coins > Data.bestRunCoins) Data.bestRunCoins = coins;
+            Save();
+            return record;
+        }
+
         public static void ResetProgress()
         {
             data = new SaveData();
